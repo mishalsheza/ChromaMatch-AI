@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShadeSense — AI Skin Color Analysis</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --rose-gold: #E8A2A2;
+    --rose-gold-dark: #D47A7A;
+    --rose-gold-light: #F5D0D0;
+    --rose-dim: rgba(232,162,162,0.12);
+    --rose-border: rgba(232,162,162,0.25);
+    --bg: #FFF8F8;
+    --surface: #FFFFFF;
+    --surface2: #FEF5F5;
+    --border: rgba(232,162,162,0.15);
+    --text: #4A3535;
+    --text-light: #8B6B6B;
+    --muted: #C4A0A0;
+    --faint: #F0DEDE;
+    --font: 'Helvetica Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,248,248,0.95);
+    backdrop-filter: blur(12px);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { 
+    font-size: 1.5rem; 
+    letter-spacing: 0.08em; 
+    font-weight: 600; 
+    cursor: pointer;
+    font-family: 'Georgia', serif;
+  }
+  .logo span { color: var(--rose-gold); }
+  .logo small {
+    font-size: 0.7rem;
+    font-weight: normal;
+    letter-spacing: 0.3em;
+    color: var(--text-light);
+    margin-left: 8px;
+  }
+  .step-bar {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .step-bar .step {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+  .step-bar .step .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--faint);
+    transition: all 0.3s;
+  }
+  .step-bar .step.active .dot { background: var(--rose-gold); box-shadow: 0 0 6px var(--rose-gold); }
+  .step-bar .step.active .step-text { color: var(--rose-gold-dark); font-weight: 500; }
+  .step-text { margin-left: 4px; }
+
+  main { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 48px 20px; }
+
+  .page { display: none; width: 100%; max-width: 800px; }
+  .page.active { display: block; animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .upload-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--rose-dim); color: var(--rose-gold-dark);
+    padding: 6px 16px; border-radius: 30px;
+    font-size: 0.7rem; font-weight: 600;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    border: 1px solid var(--rose-border);
+    margin-bottom: 24px;
+  }
+  h1 { 
+    font-size: 3rem; 
+    font-weight: 400; 
+    line-height: 1.2; 
+    margin-bottom: 16px; 
+    letter-spacing: -0.01em;
+    font-family: 'Georgia', serif;
+  }
+  h1 em { color: var(--rose-gold); font-style: normal; }
+  .subtitle { color: var(--text-light); font-size: 1rem; line-height: 1.6; max-width: 480px; margin-bottom: 40px; }
+
+  .mode-toggle {
+    display: flex; gap: 12px; justify-content: center; margin-bottom: 28px;
+    background: var(--surface2); padding: 6px; border-radius: 50px; width: fit-content; margin-left: auto; margin-right: auto;
+    border: 1px solid var(--border);
+  }
+  .mode-btn {
+    padding: 8px 28px; border-radius: 40px; border: none; cursor: pointer; font-weight: 500;
+    background: transparent; color: var(--text-light); transition: all 0.2s;
+    font-size: 0.85rem;
+  }
+  .mode-btn.active { background: var(--rose-gold); color: white; box-shadow: 0 2px 8px rgba(232,162,162,0.3); }
+
+  .drop-zone {
+    border: 2px dashed var(--rose-border);
+    border-radius: 24px;
+    padding: 52px 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+  }
+  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--rose-gold); background: var(--rose-dim); }
+  .drop-icon {
+    width: 60px; height: 60px; margin: 0 auto 16px;
+    background: var(--rose-dim); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .drop-icon svg { width: 28px; height: 28px; stroke: var(--rose-gold); fill: none; stroke-width: 1.5; }
+  .drop-label { font-size: 1rem; font-weight: 500; color: var(--text); margin-bottom: 6px; }
+  .drop-sub { font-size: 0.8rem; color: var(--text-light); }
+  .or-row { display: flex; align-items: center; gap: 14px; margin: 24px 0; color: var(--muted); font-size: 0.75rem; }
+  .or-row::before, .or-row::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 9px;
+    padding: 12px 28px; border-radius: 40px;
+    font-size: 0.9rem; font-weight: 500; cursor: pointer;
+    transition: all 0.2s; border: none;
+  }
+  .btn-rose { background: var(--rose-gold); color: white; box-shadow: 0 2px 8px rgba(232,162,162,0.3); }
+  .btn-rose:hover { background: var(--rose-gold-dark); transform: translateY(-1px); }
+  .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-outline:hover { border-color: var(--rose-gold); color: var(--rose-gold); background: var(--rose-dim); }
+
+  .sampler-header { margin-bottom: 24px; text-align: center; }
+  .sampler-header h2 { font-size: 1.8rem; font-weight: 400; margin-bottom: 8px; font-family: 'Georgia', serif; }
+  .sampler-header p { color: var(--text-light); font-size: 0.9rem; }
+
+  #canvas-wrap {
+    position: relative; border-radius: 20px; overflow: hidden;
+    border: 1px solid var(--border); background: var(--surface);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.05);
+  }
+  #sampler-canvas { display: block; max-width: 100%; height: auto; cursor: grab; user-select: none; }
+  #sampler-canvas.dragging { cursor: grabbing; }
+
+  .swatch-row { display: flex; gap: 16px; margin-top: 20px; }
+  .swatch-card {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 16px; padding: 14px 18px; display: flex; align-items: center; gap: 14px;
+  }
+  .swatch-circle { width: 48px; height: 48px; border-radius: 50%; border: 3px solid var(--rose-gold-light); flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+  .swatch-label { font-size: 0.85rem; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .swatch-hex { font-size: 0.75rem; color: var(--text-light); font-family: monospace; }
+
+  .sampler-actions { display: flex; gap: 12px; margin-top: 24px; justify-content: center; }
+
+  .results-header { text-align: center; margin-bottom: 32px; }
+  .results-header h2 { font-size: 2rem; font-weight: 400; font-family: 'Georgia', serif; margin-top: 8px; }
+
+  .metrics-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px;
+  }
+  .metric-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 20px;
+    text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,0.02);
+  }
+  .metric-label { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .metric-value { font-size: 1.8rem; font-weight: 500; color: var(--text); }
+  .metric-value span { font-size: 0.8rem; color: var(--text-light); }
+
+  .ita-row {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 24px; margin-bottom: 24px;
+  }
+  .ita-title { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; text-align: center; }
+  .ita-bar-track {
+    height: 8px; border-radius: 10px;
+    background: linear-gradient(to right, #E8C8C8, #E8B8B8, #E8A8A8, #E89898, #E88888, #E87878);
+    margin-bottom: 12px; position: relative;
+  }
+  .ita-marker {
+    position: absolute; top: 50%; transform: translate(-50%, -50%);
+    width: 18px; height: 18px; border-radius: 50%;
+    background: white; border: 3px solid var(--rose-gold); box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+  .ita-labels { display: flex; justify-content: space-between; font-size: 0.6rem; color: var(--text-light); margin-top: 8px; }
+  .ita-type-badge {
+    display: inline-block; margin-top: 16px;
+    background: var(--rose-dim); color: var(--rose-gold-dark);
+    padding: 6px 18px; border-radius: 30px; font-size: 0.8rem; font-weight: 500;
+  }
+
+  .tone-section { margin-bottom: 24px; }
+  .tone-section h3 { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; }
+  .tones-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .tone-chip {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 50px; padding: 8px 16px;
+  }
+  .tone-dot { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--rose-gold-light); flex-shrink: 0; }
+
+  .foundations-list {
+    background: var(--surface2); border-radius: 20px; padding: 20px;
+    border: 1px solid var(--border);
+  }
+  .foundation-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 0; border-bottom: 1px solid var(--border);
+  }
+  .foundation-item:last-child { border-bottom: none; }
+  .foundation-brand { font-weight: 600; color: var(--text); }
+  .foundation-product { font-size: 0.7rem; color: var(--text-light); margin-top: 2px; }
+  .foundation-shade { color: var(--rose-gold); font-weight: 600; font-family: monospace; background: var(--rose-dim); padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; }
+
+  .loading-overlay {
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    padding: 60px 20px; gap: 20px;
+  }
+  .loading-overlay.show { display: flex; }
+  .spinner { width: 48px; height: 48px; border-radius: 50%; border: 3px solid var(--rose-dim); border-top-color: var(--rose-gold); animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-box { display: none; align-items: center; gap: 10px; background: rgba(232,130,130,0.08); border: 1px solid rgba(232,130,130,0.2); border-radius: 12px; padding: 14px; margin-top: 20px; color: #D47A7A; font-size: 0.85rem; }
+  .error-box.show { display: flex; }
+
+  footer { text-align: center; padding: 30px; color: var(--text-light); font-size: 0.7rem; border-top: 1px solid var(--border); }
+
+  #file-input { display: none; }
+  .file-label {
+    background: var(--rose-dim);
+    padding: 12px 24px;
+    border-radius: 40px;
+    cursor: pointer;
+    display: inline-block;
+    margin-top: 16px;
+    color: var(--rose-gold-dark);
+    font-weight: 500;
+    border: 1px solid var(--rose-border);
+  }
+  .file-label:hover { background: var(--rose-gold); color: white; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo" onclick="resetApp()"><span>✨</span> ShadeSense <small>AI</small></div>
+  <div class="step-bar">
+    <div class="step" id="step1"><div class="dot"></div><span class="step-text">Upload</span></div>
+    <span style="color:var(--border)">→</span>
+    <div class="step" id="step2"><div class="dot"></div><span class="step-text">Place</span></div>
+    <span style="color:var(--border)">→</span>
+    <div class="step" id="step3"><div class="dot"></div><span class="step-text">Results</span></div>
+  </div>
+</header>
+
+<main>
+
+  <!-- PAGE 1: UPLOAD -->
+  <div class="page active" id="page1">
+    <div class="upload-eyebrow">🎀 AI-Powered Personal Color Analytics</div>
+    <h1>Find your<br>perfect <em>shade</em></h1>
+    <p class="subtitle">Upload a clear photo of your face. Drag the markers to your cheeks for precise analysis.</p>
+
+    <div class="mode-toggle" id="mode-toggle">
+      <button class="mode-btn active" data-mode="auto">🤍 Auto-Detect</button>
+      <button class="mode-btn" data-mode="manual">🎀 Manual Placement</button>
+    </div>
+
+    <div class="drop-zone" id="drop-zone">
+      <div class="drop-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+      <div class="drop-label">Drag & Drop your selfie</div>
+      <div class="drop-sub">or click below to browse</div>
+      <label class="file-label" id="file-label">📸 Choose a photo</label>
+      <input type="file" id="file-input" accept="image/jpeg,image/png,image/jpg,image/webp">
+    </div>
+
+    <div class="or-row">or</div>
+    <button class="btn btn-outline" id="cam-btn" style="width:100%;justify-content:center;">📷 Use Live Video Capture</button>
+
+    <div id="cam-section" style="display:none;margin-top:20px;">
+      <div style="position:relative;border-radius:20px;overflow:hidden;background:#000;border:1px solid var(--border);">
+        <video id="cam-video" autoplay playsinline style="width:100%;display:block;transform:scaleX(-1);"></video>
+        <div id="cam-countdown" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;font-size:5rem;color:var(--rose-gold);font-weight:300;"></div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:14px;">
+        <button class="btn btn-rose" id="capture-btn">Capture</button>
+        <button class="btn btn-outline" id="cam-cancel-btn">Cancel</button>
+      </div>
+    </div>
+
+    <div class="error-box" id="p1-error"><span id="p1-error-msg"></span></div>
+  </div>
+
+  <!-- PAGE 2: SAMPLER -->
+  <div class="page" id="page2">
+    <div class="sampler-header">
+      <h2>🎯 Place your markers</h2>
+      <p>Drag the rose gold circles to the center of your cheeks — color updates live</p>
+    </div>
+    <div id="canvas-wrap"><canvas id="sampler-canvas"></canvas></div>
+    <div class="swatch-row">
+      <div class="swatch-card"><div class="swatch-circle" id="swatch-left"></div><div><div class="swatch-label">Left Cheek</div><div class="swatch-hex" id="hex-left">#------</div></div></div>
+      <div class="swatch-card"><div class="swatch-circle" id="swatch-right"></div><div><div class="swatch-label">Right Cheek</div><div class="swatch-hex" id="hex-right">#------</div></div></div>
+    </div>
+    <div class="sampler-actions">
+      <button class="btn btn-rose" id="analyze-btn">✨ Analyze My Skin</button>
+      <button class="btn btn-outline" id="back-btn">← Back</button>
+    </div>
+    <div class="loading-overlay" id="analyze-loading"><div class="spinner"></div><div class="loading-text">Analyzing with AI...</div></div>
+  </div>
+
+  <!-- PAGE 3: RESULTS -->
+  <div class="page" id="page3">
+    <div class="results-header"><div class="upload-eyebrow">🎉 Your Results</div><h2>Your skin profile</h2></div>
+
+    <div class="metrics-grid">
+      <div class="metric-card"><div class="metric-label">🌟 Lightness (L*)</div><div class="metric-value" id="res-L">—</div></div>
+      <div class="metric-card"><div class="metric-label">🌸 Red-Green (a*)</div><div class="metric-value" id="res-a">—</div></div>
+      <div class="metric-card"><div class="metric-label">🌼 Yellow-Blue (b*)</div><div class="metric-value" id="res-b">—</div></div>
+    </div>
+
+    <div class="ita-row">
+      <div class="ita-title">Individual Typology Angle (ITA°)</div>
+      <div class="ita-bar-track"><div class="ita-marker" id="ita-marker" style="left:50%"></div></div>
+      <div class="ita-labels"><span>Very dark</span><span>Dark</span><span>Tan</span><span>Intermediate</span><span>Light</span><span>Very light</span></div>
+      <div style="text-align:center;"><div class="ita-type-badge" id="ita-label">—</div></div>
+    </div>
+
+    <div class="tone-section"><h3>🎨 Sampled Tones</h3><div class="tones-row" id="tone-chips"></div></div>
+    <div class="tone-section"><h3>💖 Undertone & Recommendations</h3><div id="undertone-box" style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:20px;"></div></div>
+    <div class="tone-section"><h3>🛍️ Foundation Matches</h3><div id="foundations-box" class="foundations-list"><div style="color:var(--text-light);text-align:center;">✨ Analyzing...</div></div></div>
+
+    <button class="btn btn-outline" id="restart-btn" style="margin-top:16px; width:100%; justify-content:center;">📸 Analyze another photo</button>
+  </div>
+
+</main>
+
+<footer>
+  <p>© 2026 ShadeSense AI — Color science meets beauty</p>
+</footer>
+
+<script>
+// ============================================
+// STATE
+// ============================================
+let state = {
+  imageFile: null,
+  imageEl: null,
+  canvasW: 0,
+  canvasH: 0,
+  markers: [
+    { id: 'left', label: 'Left cheek', nx: 0.32, ny: 0.52, color: '#E8A2A2' },
+    { id: 'right', label: 'Right cheek', nx: 0.68, ny: 0.52, color: '#E8A2A2' }
+  ],
+  dragging: null
+};
+
+const RADIUS = 18;
+const canvas = document.getElementById('sampler-canvas');
+const ctx = canvas.getContext('2d');
+let currentMode = 'auto';
+
+function updateSteps(activePage) {
+  for(let i=1; i<=3; i++) {
+    const step = document.getElementById(`step${i}`);
+    if(step) {
+      if(i === activePage) step.classList.add('active');
+      else step.classList.remove('active');
+    }
+  }
+}
+
+function showPage(n) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const targetPage = document.getElementById('page' + n);
+  if(targetPage) targetPage.classList.add('active');
+  updateSteps(n);
+}
+
+function resetApp() {
+  state.imageFile = null;
+  state.imageEl = null;
+  state.markers = [
+    { id: 'left', label: 'Left cheek', nx: 0.32, ny: 0.52, color: '#E8A2A2' },
+    { id: 'right', label: 'Right cheek', nx: 0.68, ny: 0.52, color: '#E8A2A2' }
+  ];
+  if(canvas) { canvas.width = 0; canvas.height = 0; }
+  const fileInput = document.getElementById('file-input');
+  if(fileInput) fileInput.value = '';
+  showPage(1);
+}
+
+// ============================================
+// DRAG LOGIC
+// ============================================
+function sampleHex(nx, ny) {
+  if (!state.imageEl) return '#E8A2A2';
+  const tmp = document.createElement('canvas');
+  tmp.width = tmp.height = 1;
+  const t = tmp.getContext('2d');
+  const ix = Math.round(nx * state.imageEl.naturalWidth);
+  const iy = Math.round(ny * state.imageEl.naturalHeight);
+  t.drawImage(state.imageEl, ix, iy, 1, 1, 0, 0, 1, 1);
+  const d = t.getImageData(0,0,1,1).data;
+  return '#' + [d[0],d[1],d[2]].map(v => v.toString(16).padStart(2,'0')).join('');
+}
+
+function drawCanvas() {
+  if (!state.imageEl || !canvas || canvas.width === 0) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(state.imageEl, 0, 0, canvas.width, canvas.height);
+  state.markers.forEach(m => {
+    const x = m.nx * canvas.width;
+    const y = m.ny * canvas.height;
+    const active = state.dragging === m.id;
+    ctx.beginPath();
+    ctx.arc(x, y, RADIUS + (active ? 6 : 3), 0, Math.PI * 2);
+    ctx.strokeStyle = active ? 'rgba(232,162,162,0.9)' : 'rgba(232,162,162,0.5)';
+    ctx.lineWidth = active ? 3 : 1.5;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x, y, RADIUS - 2, 0, Math.PI * 2);
+    ctx.fillStyle = m.color;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.font = 'bold 12px Georgia, serif';
+    ctx.fillStyle = '#4A3535';
+    ctx.fillText(m.label, x - 32, y - 24);
+    ctx.fillStyle = '#E8A2A2';
+    ctx.fillText(m.label, x - 33, y - 25);
+  });
+}
+
+function updateSwatches() {
+  state.markers.forEach(m => {
+    const swatch = document.getElementById('swatch-' + m.id);
+    const hexEl = document.getElementById('hex-' + m.id);
+    if(swatch) swatch.style.background = m.color;
+    if(hexEl) hexEl.textContent = m.color;
+  });
+}
+
+function clientToCanvas(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+}
+
+function hitTest(cx, cy) {
+  for (const m of state.markers) {
+    const mx = m.nx * canvas.width;
+    const my = m.ny * canvas.height;
+    if (Math.hypot(mx - cx, my - cy) < RADIUS + 14) return m.id;
+  }
+  return null;
+}
+
+if(canvas) {
+  canvas.addEventListener('mousedown', e => {
+    const { x, y } = clientToCanvas(e.clientX, e.clientY);
+    const id = hitTest(x, y);
+    if (id) { state.dragging = id; canvas.classList.add('dragging'); e.preventDefault(); }
+  });
+}
+
+window.addEventListener('mousemove', e => {
+  if (!state.dragging || !canvas) return;
+  const { x, y } = clientToCanvas(e.clientX, e.clientY);
+  const pad = RADIUS + 4;
+  const nx = Math.max(pad, Math.min(canvas.width - pad, x)) / canvas.width;
+  const ny = Math.max(pad, Math.min(canvas.height - pad, y)) / canvas.height;
+  const color = sampleHex(nx, ny);
+  state.markers = state.markers.map(m => m.id === state.dragging ? { ...m, nx, ny, color } : m);
+  drawCanvas();
+  updateSwatches();
+});
+
+window.addEventListener('mouseup', () => { 
+  state.dragging = null; 
+  if(canvas) canvas.classList.remove('dragging'); 
+  drawCanvas(); 
+});
+
+// ============================================
+// LOAD IMAGE
+// ============================================
+function loadImageIntoCanvas(file) {
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    state.imageEl = img;
+    const maxW = Math.min(580, img.naturalWidth);
+    canvas.width = maxW;
+    canvas.height = Math.round(maxW * img.naturalHeight / img.naturalWidth);
+    state.markers = state.markers.map(m => ({ ...m, color: sampleHex(m.nx, m.ny) }));
+    drawCanvas();
+    updateSwatches();
+    URL.revokeObjectURL(url);
+    showPage(2);
+  };
+  img.src = url;
+}
+
+function handleFile(file) {
+  if (!file || !file.type.startsWith('image/')) { 
+    const errorDiv = document.getElementById('p1-error');
+    const errorMsg = document.getElementById('p1-error-msg');
+    if(errorMsg) errorMsg.textContent = 'Please select an image file';
+    if(errorDiv) errorDiv.classList.add('show');
+    setTimeout(() => { if(errorDiv) errorDiv.classList.remove('show'); }, 3000);
+    return; 
+  }
+  state.imageFile = file;
+  loadImageIntoCanvas(file);
+}
+
+// ============================================
+// API CALL
+// ============================================
+async function analyzeWithAI() {
+  const loading = document.getElementById('analyze-loading');
+  if(loading) loading.classList.add('show');
+  
+  const formData = new FormData();
+  formData.append('image', state.imageFile);
+  formData.append('manual_sampling', 'true');
+  formData.append('sampling_points', JSON.stringify(state.markers.map(m => ({
+    x: m.nx, y: m.ny, label: m.label
+  }))));
+
+  try {
+    const response = await fetch('http://localhost:5001/api/analyze', { method: 'POST', body: formData });
+    const data = await response.json();
+    
+    if (data.success) {
+      displayResults(data);
+    } else {
+      throw new Error(data.error);
+    }
+  } catch (error) {
+    console.error('API Error:', error);
+    const undertoneBox = document.getElementById('undertone-box');
+    const foundationsBox = document.getElementById('foundations-box');
+    if(undertoneBox) undertoneBox.innerHTML = `<div style="color:#D47A7A">⚠️ Could not connect to AI server. Make sure backend is running on port 5001.</div>`;
+    if(foundationsBox) foundationsBox.innerHTML = `<div style="color:var(--text-light);">💡 Start backend with: cd backend && python app.py</div>`;
+  }
+  
+  if(loading) loading.classList.remove('show');
+  showPage(3);
+}
+
+function displayResults(data) {
+  const a = data.analysis;
+  
+  const resL = document.getElementById('res-L');
+  const resA = document.getElementById('res-a');
+  const resB = document.getElementById('res-b');
+  if(resL) resL.innerHTML = (a.lab?.L || 0).toFixed(1);
+  if(resA) resA.textContent = (a.lab?.a || 0).toFixed(1);
+  if(resB) resB.textContent = (a.lab?.b || 0).toFixed(1);
+  
+  const ita = a.ita || 30;
+  const pct = Math.max(2, Math.min(98, ((ita + 90) / 180) * 100));
+  const itaMarker = document.getElementById('ita-marker');
+  const itaLabel = document.getElementById('ita-label');
+  if(itaMarker) itaMarker.style.left = pct + '%';
+  if(itaLabel) itaLabel.textContent = `${a.skin_type || a.skin_tone || 'Medium'} · ITA ${ita.toFixed(1)}°`;
+  
+  const toneChips = document.getElementById('tone-chips');
+  if(toneChips) {
+    toneChips.innerHTML = state.markers.map(m => `
+      <div class="tone-chip"><div class="tone-dot" style="background:${m.color}"></div><div><div style="font-weight:500;">${m.label}</div><div style="font-size:0.7rem;color:var(--text-light);">${m.color}</div></div></div>
+    `).join('');
+  }
+  
+  const undertone = a.undertone || 'Neutral';
+  const undertoneDesc = undertone === 'Warm' ? '🌸 Golden and peachy hues — bronze, caramel, and earth tones suit you beautifully.' :
+                        undertone === 'Cool' ? '💖 Pink and rosy hues — jewel tones, berries, and blue-based neutrals suit you.' :
+                        '✨ Balanced — you can wear both warm and cool colors beautifully.';
+  const undertoneBox = document.getElementById('undertone-box');
+  if(undertoneBox) undertoneBox.innerHTML = `<strong style="color:var(--rose-gold); font-size:1.1rem;">${undertone} Undertone</strong><br><span style="color:var(--text-light);">${undertoneDesc}</span>`;
+  
+  const foundationsBox = document.getElementById('foundations-box');
+  if(data.recommendations && data.recommendations.foundations && foundationsBox) {
+    foundationsBox.innerHTML = data.recommendations.foundations.map(f => `
+      <div class="foundation-item">
+        <div><div class="foundation-brand">${f.brand}</div><div class="foundation-product">${f.product}</div></div>
+        <div class="foundation-shade">${f.shade}</div>
+      </div>
+    `).join('');
+  }
+}
+
+// ============================================
+// EVENT LISTENERS
+// ============================================
+const fileLabel = document.getElementById('file-label');
+const fileInput = document.getElementById('file-input');
+if(fileLabel && fileInput) {
+  fileLabel.addEventListener('click', (e) => {
+    e.stopPropagation();
+    fileInput.click();
+  });
+  fileInput.addEventListener('change', e => { if(e.target.files && e.target.files[0]) handleFile(e.target.files[0]); });
+}
+
+const dropZone = document.getElementById('drop-zone');
+if(dropZone) {
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    if(e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+}
+
+const backBtn = document.getElementById('back-btn');
+if(backBtn) backBtn.addEventListener('click', () => showPage(1));
+
+const analyzeBtn = document.getElementById('analyze-btn');
+if(analyzeBtn) analyzeBtn.addEventListener('click', analyzeWithAI);
+
+const restartBtn = document.getElementById('restart-btn');
+if(restartBtn) restartBtn.addEventListener('click', resetApp);
+
+const modeBtns = document.querySelectorAll('.mode-btn');
+modeBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    modeBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentMode = btn.dataset.mode;
+  });
+});
+
+// Webcam
+const camBtn = document.getElementById('cam-btn');
+const camSection = document.getElementById('cam-section');
+const camVideo = document.getElementById('cam-video');
+const camCancelBtn = document.getElementById('cam-cancel-btn');
+const captureBtn = document.getElementById('capture-btn');
+let camStream = null;
+
+if(camBtn) {
+  camBtn.addEventListener('click', async () => {
+    try {
+      camStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if(camVideo) camVideo.srcObject = camStream;
+      if(camSection) camSection.style.display = 'block';
+      if(camBtn) camBtn.style.display = 'none';
+    } catch(e) { 
+      const errorMsg = document.getElementById('p1-error-msg');
+      if(errorMsg) errorMsg.textContent = 'Camera access denied';
+      const errorDiv = document.getElementById('p1-error');
+      if(errorDiv) errorDiv.classList.add('show');
+      setTimeout(() => { if(errorDiv) errorDiv.classList.remove('show'); }, 3000);
+    }
+  });
+}
+
+if(camCancelBtn) {
+  camCancelBtn.addEventListener('click', () => {
+    if(camStream) camStream.getTracks().forEach(t => t.stop());
+    if(camSection) camSection.style.display = 'none';
+    if(camBtn) camBtn.style.display = '';
+  });
+}
+
+if(captureBtn) {
+  captureBtn.addEventListener('click', () => {
+    if(camVideo) {
+      const c = document.createElement('canvas');
+      c.width = camVideo.videoWidth;
+      c.height = camVideo.videoHeight;
+      const cx = c.getContext('2d');
+      cx.translate(c.width, 0);
+      cx.scale(-1, 1);
+      cx.drawImage(camVideo, 0, 0);
+      c.toBlob(blob => {
+        if(camStream) camStream.getTracks().forEach(t => t.stop());
+        if(camSection) camSection.style.display = 'none';
+        if(camBtn) camBtn.style.display = '';
+        handleFile(new File([blob], 'selfie.png', { type: 'image/png' }));
+      }, 'image/png');
+    }
+  });
+}
+</script>
+</body>
+</html>
