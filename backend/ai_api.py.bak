@@ -1,0 +1,66 @@
+from flask import Blueprint, request, jsonify, current_app
+import cv2
+import numpy as np
+import json
+import magic
+
+from analysis_service import process_analysis, get_predictor
+
+# Note: this blueprint handles /analyze
+ai_bp = Blueprint('ai_api', __name__)
+
+ALLOWED_MIMES = {'image/jpeg', 'image/png', 'image/webp', 'image/jpg'}
+
+def allowed_file(file_stream):
+    """Check MIME type via magic bytes"""
+    header = file_stream.read(2048)
+    file_stream.seek(0)
+    mime = magic.from_buffer(header, mime=True)
+    return mime in ALLOWED_MIMES
+
+def get_model_status():
+    """Returns true if model loaded properly"""
+    return get_predictor() is not None
+
+@ai_bp.route('/analyze', methods=['POST'])
+def analyze():
+    # 1. Validation
+    if 'image' not in request.files:
+        return jsonify({'error': 'No image provided'}), 400
+    
+    file = request.files['image']
+    
+    if not allowed_file(file.stream):
+        return jsonify({'error': 'Invalid file type. Only JPEG, PNG, and WebP are allowed.'}), 400
+
+    # Read image into memory
+    img_array = np.frombuffer(file.read(), np.uint8)
+    if len(img_array) == 0:
+        return jsonify({'error': 'Empty image file.'}), 400
+        
+    image_bgr = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+    
+    if image_bgr is None:
+        return jsonify({'error': 'Image decoding failed. Ensure the file is a valid image.'}), 400
+
+    # 2. Extract manual sampling data if present
+    manual_sampling = request.form.get('manual_sampling', 'false').lower() == 'true'
+    sampling_points = []
+    if manual_sampling:
+        try:
+            points_str = request.form.get('sampling_points', '[]')
+            sampling_points = json.loads(points_str)
+        except Exception as e:
+            return jsonify({'error': 'Invalid sampling_points JSON format'}), 400
+
+    # 3. Process
+    try:
+        response = process_analysis(
+            image_bgr=image_bgr,
+            manual_sampling=manual_sampling,
+            sampling_points=sampling_points
+        )
+        return jsonify(response)
+    except Exception as e:
+        current_app.logger.error(f"Analysis error: {e}")
+        return jsonify({'error': str(e)}), 500

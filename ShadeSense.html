@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShadeSense — AI Skin Color Analysis</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --rose-gold: #E8A2A2;
+    --rose-gold-dark: #D47A7A;
+    --rose-gold-light: #F5D0D0;
+    --rose-dim: rgba(232,162,162,0.12);
+    --rose-border: rgba(232,162,162,0.25);
+    --bg: #FFF8F8;
+    --surface: #FFFFFF;
+    --surface2: #FEF5F5;
+    --border: rgba(232,162,162,0.15);
+    --text: #4A3535;
+    --text-light: #8B6B6B;
+    --muted: #C4A0A0;
+    --faint: #F0DEDE;
+    --font: 'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-serif: 'Playfair Display', Georgia, serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: -1;
+    background: url("data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Cg transform='translate(50, 50)'%3E%3Ccircle cx='0' cy='-12' r='10' fill='rgba(255,182,193,0.3)'/%3E%3Ccircle cx='11' cy='-3' r='10' fill='rgba(255,182,193,0.3)'/%3E%3Ccircle cx='7' cy='9' r='10' fill='rgba(255,182,193,0.3)'/%3E%3Ccircle cx='-7' cy='9' r='10' fill='rgba(255,182,193,0.3)'/%3E%3Ccircle cx='-11' cy='-3' r='10' fill='rgba(255,182,193,0.3)'/%3E%3Ccircle cx='0' cy='0' r='8' fill='rgba(255,223,186,0.5)'/%3E%3C/g%3E%3Cg transform='translate(160, 130) scale(0.8)'%3E%3Ccircle cx='0' cy='-12' r='10' fill='rgba(173,216,230,0.3)'/%3E%3Ccircle cx='11' cy='-3' r='10' fill='rgba(173,216,230,0.3)'/%3E%3Ccircle cx='7' cy='9' r='10' fill='rgba(173,216,230,0.3)'/%3E%3Ccircle cx='-7' cy='9' r='10' fill='rgba(173,216,230,0.3)'/%3E%3Ccircle cx='-11' cy='-3' r='10' fill='rgba(173,216,230,0.3)'/%3E%3Ccircle cx='0' cy='0' r='8' fill='rgba(255,204,153,0.5)'/%3E%3C/g%3E%3Cg transform='translate(80, 180) scale(0.6)'%3E%3Ccircle cx='0' cy='-12' r='10' fill='rgba(255,255,153,0.3)'/%3E%3Ccircle cx='11' cy='-3' r='10' fill='rgba(255,255,153,0.3)'/%3E%3Ccircle cx='7' cy='9' r='10' fill='rgba(255,255,153,0.3)'/%3E%3Ccircle cx='-7' cy='9' r='10' fill='rgba(255,255,153,0.3)'/%3E%3Ccircle cx='-11' cy='-3' r='10' fill='rgba(255,255,153,0.3)'/%3E%3Ccircle cx='0' cy='0' r='8' fill='rgba(255,182,193,0.5)'/%3E%3C/g%3E%3Ccircle cx='180' cy='40' r='4' fill='rgba(255,182,193,0.2)'/%3E%3Ccircle cx='30' cy='140' r='3' fill='rgba(173,216,230,0.2)'/%3E%3Ccircle cx='120' cy='90' r='5' fill='rgba(255,255,153,0.2)'/%3E%3C/svg%3E") repeat;
+    background-size: 300px 300px;
+    animation: floatFlowers 90s linear infinite;
+  }
+  @keyframes floatFlowers {
+    from { background-position: 0 0; }
+    to { background-position: 600px 600px; }
+  }
+
+  header {
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,248,248,0.95);
+    backdrop-filter: blur(12px);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { 
+    font-size: 1.5rem; 
+    letter-spacing: 0.08em; 
+    font-weight: 600; 
+    cursor: pointer;
+    font-family: var(--font-serif);
+  }
+  .logo span { color: var(--rose-gold); }
+  .logo small {
+    font-size: 0.7rem;
+    font-weight: normal;
+    letter-spacing: 0.3em;
+    color: var(--text-light);
+    margin-left: 8px;
+  }
+  .step-bar {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .step-bar .step {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+  .step-bar .step .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--faint);
+    transition: all 0.3s;
+  }
+  .step-bar .step.active .dot { background: var(--rose-gold); box-shadow: 0 0 6px var(--rose-gold); }
+  .step-bar .step.active .step-text { color: var(--rose-gold-dark); font-weight: 500; }
+  .step-text { margin-left: 4px; }
+
+  main { flex: 1; display: flex; align-items: flex-start; justify-content: center; padding: 48px 20px; }
+
+  .page { display: none; width: 100%; max-width: 950px; }
+  .page.active { display: block; animation: fadeIn 0.4s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── PAGE 1: UPLOAD ─────────────────────────── */
+  .upload-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--rose-dim); color: var(--rose-gold-dark);
+    padding: 6px 16px; border-radius: 30px;
+    font-size: 0.7rem; font-weight: 600;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    border: 1px solid var(--rose-border);
+    margin-bottom: 24px;
+  }
+  h1 { 
+    font-size: 3rem; 
+    font-weight: 400; 
+    line-height: 1.2; 
+    margin-bottom: 16px; 
+    letter-spacing: -0.01em;
+    font-family: var(--font-serif);
+  }
+  h1 em { color: var(--rose-gold); font-style: normal; }
+  .subtitle { color: var(--text-light); font-size: 1rem; line-height: 1.6; max-width: 480px; margin-bottom: 40px; }
+
+  .mode-toggle {
+    display: flex; gap: 12px; justify-content: center; margin-bottom: 28px;
+    background: var(--surface2); padding: 6px; border-radius: 50px; width: fit-content; margin-left: auto; margin-right: auto;
+    border: 1px solid var(--border);
+  }
+  .mode-btn {
+    padding: 8px 28px; border-radius: 40px; border: none; cursor: pointer; font-weight: 500;
+    background: transparent; color: var(--text-light); transition: all 0.2s;
+    font-size: 0.85rem;
+  }
+  .mode-btn.active { background: var(--rose-gold); color: white; box-shadow: 0 2px 8px rgba(232,162,162,0.3); }
+
+  .drop-zone {
+    border: 2px dashed var(--rose-border);
+    border-radius: 24px;
+    padding: 52px 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+  }
+  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--rose-gold); background: var(--rose-dim); }
+  .drop-icon {
+    width: 60px; height: 60px; margin: 0 auto 16px;
+    background: var(--rose-dim); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .drop-icon svg { width: 28px; height: 28px; stroke: var(--rose-gold); fill: none; stroke-width: 1.5; }
+  .drop-label { font-size: 1rem; font-weight: 500; color: var(--text); margin-bottom: 6px; }
+  .drop-sub { font-size: 0.8rem; color: var(--text-light); }
+  .or-row { display: flex; align-items: center; gap: 14px; margin: 24px 0; color: var(--muted); font-size: 0.75rem; }
+  .or-row::before, .or-row::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 9px;
+    padding: 12px 28px; border-radius: 40px;
+    font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: none;
+  }
+  .btn-rose { background: var(--rose-gold); color: white; box-shadow: 0 2px 8px rgba(232,162,162,0.3); }
+  .btn-rose:hover { background: var(--rose-gold-dark); transform: translateY(-2px) scale(1.02); box-shadow: 0 6px 16px rgba(232,162,162,0.4); }
+  .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-outline:hover { border-color: var(--rose-gold); color: var(--rose-gold); background: var(--rose-dim); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(232,162,162,0.2); }
+
+  /* ── PAGE 2: SAMPLER ────────────────────────── */
+  .sampler-header { margin-bottom: 24px; text-align: center; }
+  .sampler-header h2 { font-size: 1.8rem; font-weight: 400; margin-bottom: 8px; font-family: var(--font-serif); }
+  .sampler-header p { color: var(--text-light); font-size: 0.9rem; }
+
+  #canvas-wrap {
+    position: relative; border-radius: 20px; overflow: hidden;
+    border: 1px solid var(--border); background: var(--surface);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.05);
+  }
+  #sampler-canvas { display: block; max-width: 100%; height: auto; cursor: grab; user-select: none; }
+  #sampler-canvas.dragging { cursor: grabbing; }
+
+  .swatch-row { display: flex; gap: 16px; margin-top: 20px; }
+  .swatch-card {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 16px; padding: 14px 18px; display: flex; align-items: center; gap: 14px;
+  }
+  .swatch-circle { width: 48px; height: 48px; border-radius: 50%; border: 3px solid var(--rose-gold-light); flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+  .swatch-label { font-size: 0.85rem; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .swatch-hex { font-size: 0.75rem; color: var(--text-light); font-family: monospace; }
+
+  .sampler-actions { display: flex; gap: 12px; margin-top: 24px; justify-content: center; }
+
+  /* ── PAGE 3: RESULTS ────────────────────────── */
+  .results-header { text-align: center; margin-bottom: 20px; }
+  .results-header h2 { font-size: 1.8rem; font-weight: 400; font-family: var(--font-serif); margin-top: 8px; }
+  .results-subtitle { color: var(--text-light); font-size: 0.9rem; }
+
+  /* Two-column layout */
+  .results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 24px;
+    margin-bottom: 20px;
+  }
+  .results-left { display: flex; flex-direction: column; gap: 16px; }
+  .results-right { display: flex; flex-direction: column; gap: 16px; }
+
+  /* Image card */
+  .image-card {
+    background: var(--surface);
+    border-radius: 20px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+  }
+  .image-card img { width: 100%; display: block; object-fit: cover; }
+
+  /* Skin badge */
+  .skin-badge {
+    background: var(--surface2);
+    border-radius: 16px;
+    padding: 16px 20px;
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+  .skin-badge .tone {
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .skin-badge .undertone {
+    font-size: 1rem;
+    color: var(--text-light);
+    margin-top: 4px;
+  }
+  .skin-badge .season {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--rose-gold-dark);
+    margin-top: 6px;
+    background: var(--rose-dim);
+    padding: 4px 14px;
+    border-radius: 14px;
+    display: inline-block;
+  }
+
+  /* Foundation list */
+  .foundations-card {
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+    flex: 1;
+  }
+  .foundations-card h3 {
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 16px;
+  }
+  .foundation-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .foundation-item:last-child { border-bottom: none; }
+  .foundation-info {
+    display: flex;
+    flex-direction: column;
+  }
+  .foundation-brand {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 0.85rem;
+  }
+  .foundation-product {
+    font-size: 0.7rem;
+    color: var(--text-light);
+  }
+  .foundation-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .foundation-shade {
+    color: var(--rose-gold);
+    font-weight: 600;
+    font-family: monospace;
+    background: var(--rose-dim);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    border: 1px solid var(--rose-border);
+  }
+  .btn-tryon {
+    background: var(--rose-gold);
+    color: white;
+    border: none;
+    padding: 4px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.65rem;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+  .btn-tryon:hover { background: var(--rose-gold-dark); transform: scale(1.05); }
+
+  /* ── ITA BAR ────────────────────────── */
+  .ita-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+  .ita-title {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  .ita-bar-track {
+    height: 8px;
+    border-radius: 10px;
+    background: linear-gradient(to right, #3B2219, #6B4433, #A67358, #D4A387, #F2D0BC, #FDE6D8);
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .ita-marker {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid var(--rose-gold);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+  .ita-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.55rem;
+    color: var(--text-light);
+    margin-top: 4px;
+  }
+  .ita-type-badge {
+    display: inline-block;
+    margin-top: 10px;
+    background: var(--rose-dim);
+    color: var(--rose-gold-dark);
+    padding: 4px 16px;
+    border-radius: 30px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-align: center;
+  }
+  .ita-center { text-align: center; }
+
+  /* ── UNDERTONE DESCRIPTION ────────────────────────── */
+  .undertone-desc {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px 20px;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+    color: var(--text-light);
+    line-height: 1.6;
+  }
+  .undertone-desc strong {
+    color: var(--text);
+  }
+
+  /* ── COLOR PALETTE ────────────────────────── */
+  .palette-card {
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+    margin-bottom: 20px;
+  }
+  .palette-card h3 {
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 16px;
+  }
+  .palette-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+    align-items: center;
+  }
+  .palette-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text);
+    min-width: 70px;
+  }
+  .palette-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--rose-dim);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    border: 1px solid var(--rose-border);
+    color: var(--text);
+  }
+  .palette-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.08);
+    flex-shrink: 0;
+  }
+  .palette-tag-avoid {
+    background: rgba(180,60,60,0.08);
+    border-color: rgba(180,60,60,0.1);
+    color: #A04040;
+  }
+
+  .loading-overlay {
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    padding: 60px 20px; gap: 20px;
+  }
+  .loading-overlay.show { display: flex; }
+  .spinner { width: 48px; height: 48px; border-radius: 50%; border: 3px solid var(--rose-dim); border-top-color: var(--rose-gold); animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-box { display: none; align-items: center; gap: 10px; background: rgba(232,130,130,0.08); border: 1px solid rgba(232,130,130,0.2); border-radius: 12px; padding: 14px; margin-top: 20px; color: #D47A7A; font-size: 0.85rem; }
+  .error-box.show { display: flex; }
+
+  footer { text-align: center; padding: 30px; color: var(--text-light); font-size: 0.7rem; border-top: 1px solid var(--border); }
+
+  #file-input { display: none; }
+  .file-label {
+    background: var(--rose-dim);
+    padding: 12px 24px;
+    border-radius: 40px;
+    cursor: pointer;
+    display: inline-block;
+    margin-top: 16px;
+    color: var(--rose-gold-dark);
+    font-weight: 500;
+    border: 1px solid var(--rose-border);
+  }
+  .file-label:hover { background: var(--rose-gold); color: white; }
+
+  /* Try-On Modal */
+  #tryon-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(8px);
+  }
+  #tryon-modal.show { display: flex; }
+  .modal-content {
+    background: var(--bg);
+    border-radius: 24px;
+    padding: 32px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    border: 1px solid var(--rose-border);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .modal-header h3 {
+    color: var(--text);
+    font-family: var(--font-serif);
+    font-size: 1.3rem;
+  }
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: var(--text-light);
+    transition: all 0.2s;
+  }
+  .modal-close:hover { color: var(--rose-gold); transform: rotate(90deg); }
+  #tryon-image {
+    width: 100%;
+    border-radius: 16px;
+    border: 2px solid var(--rose-border);
+  }
+  .tryon-loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-light);
+  }
+  .modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+
+  .restart-btn { margin-top: 8px; width: 100%; justify-content: center; }
+
+  @media (max-width: 768px) {
+    .results-grid { grid-template-columns: 1fr; }
+    h1 { font-size: 2rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo" onclick="resetApp()"><span>✨</span> ShadeSense <small>AI</small></div>
+  <div class="step-bar">
+    <div class="step" id="step1"><div class="dot"></div><span class="step-text">Upload</span></div>
+    <span style="color:var(--border)">→</span>
+    <div class="step" id="step2"><div class="dot"></div><span class="step-text">Place</span></div>
+    <span style="color:var(--border)">→</span>
+    <div class="step" id="step3"><div class="dot"></div><span class="step-text">Results</span></div>
+  </div>
+</header>
+
+<main>
+
+  <!-- PAGE 1: UPLOAD -->
+  <div class="page active" id="page1">
+    <div class="upload-eyebrow">🎀 AI-Powered Personal Color Analytics</div>
+    <h1>Find your<br>perfect <em>shade</em></h1>
+    <p class="subtitle">Upload a clear photo of your face. Drag the markers to your cheeks for precise analysis.</p>
+
+    <div class="mode-toggle" id="mode-toggle">
+      <button class="mode-btn active" data-mode="auto">🤍 Auto-Detect</button>
+      <button class="mode-btn" data-mode="manual">🎀 Manual Placement</button>
+    </div>
+
+    <div class="drop-zone" id="drop-zone">
+      <div class="drop-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+      <div class="drop-label">Drag & Drop your selfie</div>
+      <div class="drop-sub">or click below to browse</div>
+      <label class="file-label" id="file-label">📸 Choose a photo</label>
+      <input type="file" id="file-input" accept="image/jpeg,image/png,image/jpg,image/webp">
+    </div>
+
+    <div class="or-row">or</div>
+    <button class="btn btn-outline" id="cam-btn" style="width:100%;justify-content:center;">📷 Use Live Video Capture</button>
+
+    <div id="cam-section" style="display:none;margin-top:20px;">
+      <div style="position:relative;border-radius:20px;overflow:hidden;background:#000;border:1px solid var(--border);">
+        <video id="cam-video" autoplay playsinline style="width:100%;display:block;transform:scaleX(-1);"></video>
+        <div id="cam-countdown" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;font-size:5rem;color:var(--rose-gold);font-weight:300;"></div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:14px;">
+        <button class="btn btn-rose" id="capture-btn">Capture</button>
+        <button class="btn btn-outline" id="cam-cancel-btn">Cancel</button>
+      </div>
+    </div>
+
+    <div class="error-box" id="p1-error"><span id="p1-error-msg"></span></div>
+  </div>
+
+  <!-- PAGE 2: SAMPLER -->
+  <div class="page" id="page2">
+    <div class="sampler-header">
+      <h2>🎯 Place your markers</h2>
+      <p>Drag the rose gold circles to the center of your cheeks — color updates live</p>
+    </div>
+    <div id="canvas-wrap"><canvas id="sampler-canvas"></canvas></div>
+    <div class="swatch-row">
+      <div class="swatch-card"><div class="swatch-circle" id="swatch-left"></div><div><div class="swatch-label">Left Cheek</div><div class="swatch-hex" id="hex-left">#------</div></div></div>
+      <div class="swatch-card"><div class="swatch-circle" id="swatch-right"></div><div><div class="swatch-label">Right Cheek</div><div class="swatch-hex" id="hex-right">#------</div></div></div>
+    </div>
+    <div class="sampler-actions">
+      <button class="btn btn-rose" id="analyze-btn">✨ Analyze My Skin</button>
+      <button class="btn btn-outline" id="back-btn">← Back</button>
+    </div>
+    <div class="loading-overlay" id="analyze-loading"><div class="spinner"></div><div class="loading-text">Analyzing with AI...</div></div>
+  </div>
+
+  <!-- PAGE 3: RESULTS -->
+  <div class="page" id="page3">
+    <div class="results-header">
+      <div class="upload-eyebrow">🎉 Your Results</div>
+      <h2>Your skin profile</h2>
+      <p class="results-subtitle" id="result-summary">Loading...</p>
+    </div>
+
+    <!-- Two-column layout: Image + Foundations -->
+    <div class="results-grid">
+      <div class="results-left">
+        <div class="image-card">
+          <img id="result-image" src="" alt="Your uploaded photo">
+        </div>
+        <div class="skin-badge">
+          <div class="tone" id="result-skin-tone">—</div>
+          <div class="undertone" id="result-undertone">—</div>
+          <div class="season" id="result-season">—</div>
+          <div class="archetype" id="result-archetype" style="margin-top: 12px; font-size: 0.95rem; font-weight: 600; color: var(--rose-gold-dark);">—</div>
+          <div class="confidence" id="result-confidence" style="margin-top: 6px; font-size: 0.75rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">—</div>
+        </div>
+      </div>
+
+      <div class="results-right">
+        <div class="foundations-card">
+          <h3>💄 Foundation Matches</h3>
+          <div id="foundations-box">
+            <div style="color:var(--text-light);text-align:center;padding:20px;">✨ Analyzing...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Undertone Description -->
+    <div class="undertone-desc" id="undertone-desc">
+      <strong id="undertone-title">—</strong>
+      <span id="undertone-text">—</span>
+    </div>
+
+    <!-- ITA Bar -->
+    <div class="ita-row">
+      <div class="ita-title">Individual Typology Angle (ITA°)</div>
+      <div class="ita-bar-track">
+        <div class="ita-marker" id="ita-marker" style="left:50%"></div>
+      </div>
+      <div class="ita-labels">
+        <span>Very dark</span><span>Dark</span><span>Tan</span><span>Intermediate</span><span>Light</span><span>Very light</span>
+      </div>
+      <div class="ita-center">
+        <div class="ita-type-badge" id="ita-label">—</div>
+      </div>
+    </div>
+
+    <!-- Color Palette -->
+    <div class="palette-card" id="palette-card">
+      <h3>🎨 Your Perfect Color Palette</h3>
+      <div id="color-palette-content">
+        <div style="color:var(--text-light);text-align:center;padding:10px;">Loading...</div>
+      </div>
+    </div>
+
+    <button class="btn btn-outline restart-btn" id="restart-btn">📸 Analyze another photo</button>
+  </div>
+
+</main>
+
+<!-- TRY-ON MODAL -->
+<div id="tryon-modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>👁️ Foundation Try-On</h3>
+      <button class="modal-close" onclick="closeTryOn()">✕</button>
+    </div>
+    <div id="tryon-container">
+      <img id="tryon-image" src="" style="width:100%; border-radius:16px; display:none; border:2px solid var(--rose-border);">
+      <div id="tryon-loading" class="tryon-loading">
+        <div class="spinner" style="margin:0 auto 16px;"></div>
+        <p>Applying foundation...</p>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-rose" id="tryon-intensity" onclick="adjustIntensity()">💫 Medium Coverage</button>
+      <button class="btn btn-outline" onclick="closeTryOn()">Close</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>© 2026 ShadeSense AI — Color science meets beauty</p>
+</footer>
+
+<script>
+// ============================================
+// STATE
+// ============================================
+let state = {
+  imageFile: null,
+  imageEl: null,
+  canvasW: 0,
+  canvasH: 0,
+  markers: [
+    { id: 'left', label: 'Left cheek', nx: 0.32, ny: 0.52, color: '#E8A2A2' },
+    { id: 'right', label: 'Right cheek', nx: 0.68, ny: 0.52, color: '#E8A2A2' }
+  ],
+  dragging: null
+};
+
+let currentShade = '';
+let currentImageFile = null;
+let currentIntensity = 0.7;
+let uploadedImageUrl = null;
+
+const RADIUS = 18;
+const canvas = document.getElementById('sampler-canvas');
+const ctx = canvas.getContext('2d');
+let currentMode = 'auto';
+
+function updateSteps(activePage) {
+  for(let i=1; i<=3; i++) {
+    const step = document.getElementById(`step${i}`);
+    if(step) {
+      if(i === activePage) step.classList.add('active');
+      else step.classList.remove('active');
+    }
+  }
+}
+
+function showPage(n) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const targetPage = document.getElementById('page' + n);
+  if(targetPage) targetPage.classList.add('active');
+  updateSteps(n);
+}
+
+function resetApp() {
+  state.imageFile = null;
+  state.imageEl = null;
+  currentImageFile = null;
+  uploadedImageUrl = null;
+  state.markers = [
+    { id: 'left', label: 'Left cheek', nx: 0.32, ny: 0.52, color: '#E8A2A2' },
+    { id: 'right', label: 'Right cheek', nx: 0.68, ny: 0.52, color: '#E8A2A2' }
+  ];
+  if(canvas) { canvas.width = 0; canvas.height = 0; }
+  const fileInput = document.getElementById('file-input');
+  if(fileInput) fileInput.value = '';
+  closeTryOn();
+  showPage(1);
+}
+
+// ============================================
+// DRAG LOGIC
+// ============================================
+function sampleHex(nx, ny) {
+  if (!state.imageEl) return '#E8A2A2';
+  const tmp = document.createElement('canvas');
+  tmp.width = tmp.height = 1;
+  const t = tmp.getContext('2d');
+  const ix = Math.round(nx * state.imageEl.naturalWidth);
+  const iy = Math.round(ny * state.imageEl.naturalHeight);
+  t.drawImage(state.imageEl, ix, iy, 1, 1, 0, 0, 1, 1);
+  const d = t.getImageData(0,0,1,1).data;
+  return '#' + [d[0],d[1],d[2]].map(v => v.toString(16).padStart(2,'0')).join('');
+}
+
+function drawCanvas() {
+  if (!state.imageEl || !canvas || canvas.width === 0) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(state.imageEl, 0, 0, canvas.width, canvas.height);
+  state.markers.forEach(m => {
+    const x = m.nx * canvas.width;
+    const y = m.ny * canvas.height;
+    const active = state.dragging === m.id;
+    ctx.beginPath();
+    ctx.arc(x, y, RADIUS + (active ? 6 : 3), 0, Math.PI * 2);
+    ctx.strokeStyle = active ? 'rgba(232,162,162,0.9)' : 'rgba(232,162,162,0.5)';
+    ctx.lineWidth = active ? 3 : 1.5;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x, y, RADIUS - 2, 0, Math.PI * 2);
+    ctx.fillStyle = m.color;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.font = 'bold 12px var(--font)';
+    ctx.fillStyle = '#4A3535';
+    ctx.fillText(m.label, x - 32, y - 24);
+    ctx.fillStyle = '#E8A2A2';
+    ctx.fillText(m.label, x - 33, y - 25);
+  });
+}
+
+function updateSwatches() {
+  state.markers.forEach(m => {
+    const swatch = document.getElementById('swatch-' + m.id);
+    const hexEl = document.getElementById('hex-' + m.id);
+    if(swatch) swatch.style.background = m.color;
+    if(hexEl) hexEl.textContent = m.color;
+  });
+}
+
+function clientToCanvas(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+}
+
+function hitTest(cx, cy) {
+  for (const m of state.markers) {
+    const mx = m.nx * canvas.width;
+    const my = m.ny * canvas.height;
+    if (Math.hypot(mx - cx, my - cy) < RADIUS + 14) return m.id;
+  }
+  return null;
+}
+
+if(canvas) {
+  canvas.addEventListener('mousedown', e => {
+    const { x, y } = clientToCanvas(e.clientX, e.clientY);
+    const id = hitTest(x, y);
+    if (id) { state.dragging = id; canvas.classList.add('dragging'); e.preventDefault(); }
+  });
+}
+
+window.addEventListener('mousemove', e => {
+  if (!state.dragging || !canvas) return;
+  const { x, y } = clientToCanvas(e.clientX, e.clientY);
+  const pad = RADIUS + 4;
+  const nx = Math.max(pad, Math.min(canvas.width - pad, x)) / canvas.width;
+  const ny = Math.max(pad, Math.min(canvas.height - pad, y)) / canvas.height;
+  const color = sampleHex(nx, ny);
+  state.markers = state.markers.map(m => m.id === state.dragging ? { ...m, nx, ny, color } : m);
+  drawCanvas();
+  updateSwatches();
+});
+
+window.addEventListener('mouseup', () => { 
+  state.dragging = null; 
+  if(canvas) canvas.classList.remove('dragging'); 
+  drawCanvas(); 
+});
+
+// ============================================
+// LOAD IMAGE
+// ============================================
+function loadImageIntoCanvas(file) {
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    state.imageEl = img;
+    const maxW = Math.min(580, img.naturalWidth);
+    canvas.width = maxW;
+    canvas.height = Math.round(maxW * img.naturalHeight / img.naturalWidth);
+    state.markers = state.markers.map(m => ({ ...m, color: sampleHex(m.nx, m.ny) }));
+    drawCanvas();
+    updateSwatches();
+    URL.revokeObjectURL(url);
+    showPage(2);
+  };
+  img.src = url;
+}
+
+function handleFile(file) {
+  if (!file || !file.type.startsWith('image/')) { 
+    const errorDiv = document.getElementById('p1-error');
+    const errorMsg = document.getElementById('p1-error-msg');
+    if(errorMsg) errorMsg.textContent = 'Please select an image file';
+    if(errorDiv) errorDiv.classList.add('show');
+    setTimeout(() => { if(errorDiv) errorDiv.classList.remove('show'); }, 3000);
+    return; 
+  }
+  state.imageFile = file;
+  currentImageFile = file;
+  uploadedImageUrl = URL.createObjectURL(file);
+  loadImageIntoCanvas(file);
+}
+
+// ============================================
+// API CALL
+// ============================================
+async function analyzeWithAI() {
+  const loading = document.getElementById('analyze-loading');
+  if(loading) loading.classList.add('show');
+  
+  const formData = new FormData();
+  formData.append('image', state.imageFile);
+  formData.append('manual_sampling', 'true');
+  formData.append('sampling_points', JSON.stringify(state.markers.map(m => ({
+    x: m.nx, y: m.ny, label: m.label
+  }))));
+
+  try {
+    const response = await fetch('http://localhost:5001/api/analyze', { method: 'POST', body: formData });
+    const data = await response.json();
+    
+    if (data.success) {
+      displayResults(data);
+    } else {
+      throw new Error(data.error);
+    }
+  } catch (error) {
+    console.error('API Error:', error);
+    alert('Could not connect to AI server. Make sure backend is running on port 5001.');
+  }
+  
+  if(loading) loading.classList.remove('show');
+  showPage(3);
+}
+
+// ============================================
+// DISPLAY RESULTS
+// ============================================
+function displayResults(data) {
+  const a = data.analysis;
+  const colorRecs = data.color_recommendations;
+  
+  // Set image
+  const resultImage = document.getElementById('result-image');
+  if (uploadedImageUrl) {
+    resultImage.src = uploadedImageUrl;
+  }
+  
+  // Update skin badge
+  const skinTone = a.skin_tone || 'Medium';
+  const undertone = a.undertone || 'Neutral';
+  const season = colorRecs?.seasonal_palette?.name || undertone + ' Season';
+  
+  document.getElementById('result-skin-tone').innerHTML = '🌸 <b>' + skinTone + '</b> Skin Tone';
+  document.getElementById('result-undertone').innerHTML = '💄 <b>' + undertone + '</b> Undertone';
+  document.getElementById('result-season').textContent = '🍂 ' + season;
+  document.getElementById('result-summary').innerHTML = `<b>${skinTone}</b> skin with <b>${undertone.toLowerCase()}</b> undertone — ${season}`;
+  
+  const confidence = a.confidence ? Math.round(a.confidence * 100) + '% Confidence' : 'AI Analyzed';
+  const archetype = colorRecs?.style_archetype || 'Classic Elegance';
+  
+  document.getElementById('result-confidence').textContent = '✨ ' + confidence;
+  document.getElementById('result-archetype').textContent = 'Style Archetype: ' + archetype;
+  
+  // Undertone description
+  const desc = undertone === 'Warm' 
+    ? '🌸 Golden and peachy hues — bronze, caramel, and earth tones suit you beautifully.'
+    : undertone === 'Cool'
+    ? '💖 Pink and rosy hues — jewel tones, berries, and blue-based neutrals suit you.'
+    : '✨ Balanced — you can wear both warm and cool colors beautifully.';
+  
+  document.getElementById('undertone-title').textContent = undertone + ' Undertone — ';
+  document.getElementById('undertone-text').textContent = desc;
+  
+  // ITA
+  const ita = a.ita || 30;
+  const pct = Math.max(2, Math.min(98, ((ita + 90) / 180) * 100));
+  const itaMarker = document.getElementById('ita-marker');
+  const itaLabel = document.getElementById('ita-label');
+  if(itaMarker) itaMarker.style.left = pct + '%';
+  if(itaLabel) itaLabel.textContent = `${a.skin_type || a.skin_tone || 'Medium'} · ITA ${ita.toFixed(1)}°`;
+  
+  // ── FOUNDATION MATCHES ──
+  const foundationsBox = document.getElementById('foundations-box');
+  if (data.recommendations && data.recommendations.foundations && foundationsBox) {
+    foundationsBox.innerHTML = data.recommendations.foundations.map(f => `
+      <div class="foundation-item">
+        <div class="foundation-info">
+          <div class="foundation-brand">${f.brand}</div>
+          <div class="foundation-product">${f.product}</div>
+        </div>
+        <div class="foundation-actions">
+          <span class="foundation-shade">${f.shade}</span>
+          <button class="btn-tryon" onclick="tryOnFoundation('${f.shade}')">👁️ Try On</button>
+        </div>
+      </div>
+    `).join('');
+  }
+  
+  // ── COLOR PALETTE ──
+  const paletteContent = document.getElementById('color-palette-content');
+  if (colorRecs) {
+    paletteContent.innerHTML = `
+      <div class="palette-row">
+        <span class="palette-label">✨ Best:</span>
+        ${colorRecs.clothing_palette.best_colors.map(c => `
+          <span class="palette-tag"><span class="palette-dot" style="background:${getColorHex(c)}"></span>${c}</span>
+        `).join('')}
+      </div>
+      
+      ${colorRecs.clothing_palette.avoid_colors ? `
+      <div class="palette-row">
+        <span class="palette-label">⚠️ Avoid:</span>
+        ${colorRecs.clothing_palette.avoid_colors.map(c => `
+          <span class="palette-tag palette-tag-avoid"><span class="palette-dot" style="background:${getColorHex(c)}"></span>${c}</span>
+        `).join('')}
+      </div>
+      ` : ''}
+      
+      <div class="palette-row">
+        <span class="palette-label">💍 Jewelry:</span>
+        ${colorRecs.jewelry.recommended.split(',').map(m => `
+          <span class="palette-tag"><span class="palette-dot" style="background:${getMetalColor(m.trim())}"></span>${m.trim()}</span>
+        `).join('')}
+      </div>
+      
+      <div class="palette-row">
+        <span class="palette-label">💄 Makeup:</span>
+        <span class="palette-tag"><span class="palette-dot" style="background:#F4A261"></span>Blush: ${colorRecs.makeup.blush}</span>
+        <span class="palette-tag"><span class="palette-dot" style="background:#C83060"></span>Lipstick: ${colorRecs.makeup.lipstick}</span>
+      </div>
+      
+      <div class="palette-row">
+        <span class="palette-label">💇 Hair:</span>
+        ${colorRecs.hair_colors.map(c => `
+          <span class="palette-tag"><span class="palette-dot" style="background:${getHairColor(c)}"></span>${c}</span>
+        `).join('')}
+      </div>
+    `;
+  }
+}
+
+// ── HELPER COLOR FUNCTIONS ──
+function getColorHex(colorName) {
+  if (!colorName) return '#D4A0A0';
+  const n = colorName.toLowerCase();
+  if(n.includes('orange')) return '#FF8C42';
+  if(n.includes('peach')) return '#FFDAB9';
+  if(n.includes('coral')) return '#FF7F50';
+  if(n.includes('gold') && !n.includes('rose')) return '#D4AF37';
+  if(n.includes('olive') || n.includes('khaki')) return '#556B2F';
+  if(n.includes('navy')) return '#000080';
+  if(n.includes('blue')) return '#4A90D9';
+  if(n.includes('emerald') || n.includes('green') || n.includes('mint')) return '#50C878';
+  if(n.includes('purple') || n.includes('plum') || n.includes('violet') || n.includes('lavender')) return '#9B59B6';
+  if(n.includes('red') || n.includes('crimson') || n.includes('scarlet')) return '#C41E3A';
+  if(n.includes('pink') || n.includes('rose') || n.includes('magenta') || n.includes('fuchsia')) return '#FF6B8A';
+  if(n.includes('silver')) return '#C0C0C0';
+  if(n.includes('berry')) return '#8B1A4A';
+  if(n.includes('taupe')) return '#B8A898';
+  if(n.includes('teal') || n.includes('cyan')) return '#008080';
+  if(n.includes('burgundy') || n.includes('maroon') || n.includes('wine')) return '#800020';
+  if(n.includes('yellow') || n.includes('mustard')) return '#E1AD01';
+  if(n.includes('white')) return '#FFFFFF';
+  if(n.includes('black')) return '#000000';
+  if(n.includes('grey') || n.includes('gray') || n.includes('charcoal')) return '#808080';
+  if(n.includes('brown') || n.includes('chocolate') || n.includes('chestnut') || n.includes('earth')) return '#8B4513';
+  if(n.includes('cream') || n.includes('ivory')) return '#FFFFF0';
+  if(n.includes('champagne')) return '#F7E7CE';
+  if(n.includes('beige')) return '#F5F5DC';
+  
+  return '#D4A0A0';
+}
+
+function getMetalColor(metal) {
+  if(!metal) return '#D4AF37';
+  const m = metal.toLowerCase();
+  if(m.includes('rose gold')) return '#E8A2A2';
+  if(m.includes('white gold') || m.includes('platinum') || m.includes('silver')) return '#E5E4E2';
+  if(m.includes('copper') || m.includes('bronze')) return '#B87333';
+  if(m.includes('brass')) return '#B5A642';
+  return '#D4AF37';
+}
+
+function getHairColor(color) {
+  if(!color) return '#8B6B4B';
+  const c = color.toLowerCase();
+  if(c.includes('blonde') || c.includes('blond')) {
+    if(c.includes('ash')) return '#D4C4B0';
+    if(c.includes('platinum')) return '#F0E8E0';
+    if(c.includes('honey')) return '#E8C88A';
+    return '#E8D0A0';
+  }
+  if(c.includes('black')) return '#1A1A1A';
+  if(c.includes('caramel')) return '#C88A50';
+  if(c.includes('red') || c.includes('copper') || c.includes('auburn')) return '#A52A2A';
+  if(c.includes('brown') || c.includes('chestnut')) {
+    if(c.includes('dark')) return '#5C3A2A';
+    if(c.includes('light')) return '#A0522D';
+    return '#8B5A3C';
+  }
+  return '#8B6B4B';
+}
+
+// ============================================
+// EVENT LISTENERS
+// ============================================
+const fileLabel = document.getElementById('file-label');
+const fileInput = document.getElementById('file-input');
+if(fileLabel && fileInput) {
+  fileLabel.addEventListener('click', (e) => {
+    e.stopPropagation();
+    fileInput.click();
+  });
+  fileInput.addEventListener('change', e => { if(e.target.files && e.target.files[0]) handleFile(e.target.files[0]); });
+}
+
+const dropZone = document.getElementById('drop-zone');
+if(dropZone) {
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    if(e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+}
+
+const backBtn = document.getElementById('back-btn');
+if(backBtn) backBtn.addEventListener('click', () => showPage(1));
+
+const analyzeBtn = document.getElementById('analyze-btn');
+if(analyzeBtn) analyzeBtn.addEventListener('click', analyzeWithAI);
+
+const restartBtn = document.getElementById('restart-btn');
+if(restartBtn) restartBtn.addEventListener('click', resetApp);
+
+const modeBtns = document.querySelectorAll('.mode-btn');
+modeBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    modeBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentMode = btn.dataset.mode;
+  });
+});
+
+// Webcam
+const camBtn = document.getElementById('cam-btn');
+const camSection = document.getElementById('cam-section');
+const camVideo = document.getElementById('cam-video');
+const camCancelBtn = document.getElementById('cam-cancel-btn');
+const captureBtn = document.getElementById('capture-btn');
+let camStream = null;
+
+if(camBtn) {
+  camBtn.addEventListener('click', async () => {
+    try {
+      camStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if(camVideo) camVideo.srcObject = camStream;
+      if(camSection) camSection.style.display = 'block';
+      if(camBtn) camBtn.style.display = 'none';
+    } catch(e) { 
+      const errorMsg = document.getElementById('p1-error-msg');
+      if(errorMsg) errorMsg.textContent = 'Camera access denied';
+      const errorDiv = document.getElementById('p1-error');
+      if(errorDiv) errorDiv.classList.add('show');
+      setTimeout(() => { if(errorDiv) errorDiv.classList.remove('show'); }, 3000);
+    }
+  });
+}
+
+if(camCancelBtn) {
+  camCancelBtn.addEventListener('click', () => {
+    if(camStream) camStream.getTracks().forEach(t => t.stop());
+    if(camSection) camSection.style.display = 'none';
+    if(camBtn) camBtn.style.display = '';
+  });
+}
+
+if(captureBtn) {
+  captureBtn.addEventListener('click', () => {
+    if(camVideo) {
+      const c = document.createElement('canvas');
+      c.width = camVideo.videoWidth;
+      c.height = camVideo.videoHeight;
+      const cx = c.getContext('2d');
+      cx.translate(c.width, 0);
+      cx.scale(-1, 1);
+      cx.drawImage(camVideo, 0, 0);
+      c.toBlob(blob => {
+        if(camStream) camStream.getTracks().forEach(t => t.stop());
+        if(camSection) camSection.style.display = 'none';
+        if(camBtn) camBtn.style.display = '';
+        handleFile(new File([blob], 'selfie.png', { type: 'image/png' }));
+      }, 'image/png');
+    }
+  });
+}
+
+// ============================================
+// TRY-ON FUNCTIONS
+// ============================================
+async function tryOnFoundation(shade) {
+    currentShade = shade;
+    
+    const modal = document.getElementById('tryon-modal');
+    modal.classList.add('show');
+    
+    document.getElementById('tryon-image').style.display = 'none';
+    document.getElementById('tryon-loading').style.display = 'block';
+    
+    if (!currentImageFile) {
+        alert('Please upload an image first');
+        closeTryOn();
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('image', currentImageFile);
+    formData.append('shade', shade);
+    formData.append('intensity', currentIntensity);
+    
+    try {
+        const response = await fetch('http://localhost:5001/api/tryon', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            document.getElementById('tryon-image').src = 'data:image/jpeg;base64,' + data.image;
+            document.getElementById('tryon-image').style.display = 'block';
+            document.getElementById('tryon-loading').style.display = 'none';
+        } else {
+            alert('Error: ' + data.error);
+            closeTryOn();
+        }
+    } catch (error) {
+        console.error('Try-on error:', error);
+        alert('Failed to apply foundation. Please try again.');
+        closeTryOn();
+    }
+}
+
+function closeTryOn() {
+    document.getElementById('tryon-modal').classList.remove('show');
+}
+
+function adjustIntensity() {
+    const values = [0.3, 0.5, 0.7, 0.9, 1.0];
+    const labels = ['Light', 'Medium', 'Full', 'Heavy', 'Maximum'];
+    const currentIndex = values.indexOf(currentIntensity);
+    const nextIndex = (currentIndex + 1) % values.length;
+    currentIntensity = values[nextIndex];
+    
+    document.getElementById('tryon-intensity').textContent = '💫 ' + labels[nextIndex] + ' Coverage';
+    
+    if (currentShade) {
+        tryOnFoundation(currentShade);
+    }
+}
+</script>
+</body>
+</html>
