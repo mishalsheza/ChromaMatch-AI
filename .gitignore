@@ -1,0 +1,34 @@
+# Python
+venv/
+.venv/
+venv_ai/
+backend/venv_ai/
+
+# Training data
+ai/data/raw/
+ai/data/kaggle_original/
+*.jpg
+*.jpeg
+*.png
+
+# Cache
+__pycache__/
+*.pyc
+
+# Models (if too large)
+*.h5
+*.keras
+*.ckpt
+
+# Logs
+logs/
+
+# Environment
+.env
+.env.*
+
+# Node
+node_modules/
+
+# macOS
+.DS_Store

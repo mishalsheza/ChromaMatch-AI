@@ -1,0 +1,13 @@
+{
+  "name": "shadesense-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Root-level proxy script configuration for ShadeSense AI.",
+  "scripts": {
+    "install:frontend": "npm install --prefix frontend",
+    "build": "npm run build --prefix frontend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev:backend": "cd backend && source venv/bin/activate && python app.py",
+    "start": "npm run dev:frontend"
+  }
+}

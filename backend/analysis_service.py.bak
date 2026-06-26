@@ -1,0 +1,186 @@
+import cv2
+import numpy as np
+import sys
+import os
+
+# Ensure the ai directory is in path to import predict
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from lighting import correct_lighting
+from undertone_analyzer import analyze_skin_color
+from recommender import get_recommendations
+from config import config_by_name
+
+# Lazy load AI model
+predictor_instance = None
+
+def get_predictor():
+    global predictor_instance
+    if predictor_instance is None:
+        try:
+            from ai.predict import SkinPredictor
+            model_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'ai', 'models', 'balanced_skin_analyzer.h5'))
+            if not os.path.exists(model_path):
+                # Fallback to the other model name just in case
+                model_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'ai', 'models', 'final_skin_analyzer.h5'))
+            if os.path.exists(model_path):
+                predictor_instance = SkinPredictor(model_path=model_path)
+            else:
+                return None
+        except Exception as e:
+            print(f"Error loading AI model: {e}")
+            return None
+    return predictor_instance
+
+def extract_manual_cheeks(image_bgr, sampling_points):
+    """Extract RGB means from manual sampling points. sampling_points is a list of {x, y, label}."""
+    h, w, _ = image_bgr.shape
+    left_rgb, right_rgb = None, None
+    left_center, right_center = None, None
+    
+    # Convert immediately to RGB
+    image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+    
+    for pt in sampling_points:
+        x = int(pt['x'] * w) if isinstance(pt['x'], float) else int(pt['x'])
+        y = int(pt['y'] * h) if isinstance(pt['y'], float) else int(pt['y'])
+        
+        # Clamp
+        x = max(0, min(w - 1, x))
+        y = max(0, min(h - 1, y))
+        
+        # Extract small patch around the point for robust color
+        patch_size = 5
+        x1 = max(0, x - patch_size)
+        y1 = max(0, y - patch_size)
+        x2 = min(w, x + patch_size)
+        y2 = min(h, y + patch_size)
+        
+        patch = image_rgb[y1:y2, x1:x2]
+        if patch.size == 0:
+            color = image_rgb[y, x].tolist()
+        else:
+            color = patch.mean(axis=(0, 1)).tolist()
+            
+        color = [int(c) for c in color]
+        
+        if pt.get('label') == 'left':
+            left_rgb = color
+            left_center = [x, y]
+        elif pt.get('label') == 'right':
+            right_rgb = color
+            right_center = [x, y]
+            
+    # Default fallback
+    if left_rgb is None: left_rgb = right_rgb or [128, 128, 128]
+    if right_rgb is None: right_rgb = left_rgb or [128, 128, 128]
+    if left_center is None: left_center = [w//3, h//2]
+    if right_center is None: right_center = [2*w//3, h//2]
+    
+    return left_rgb, right_rgb, left_center, right_center
+
+def process_analysis(image_bgr, manual_sampling=False, sampling_points=None):
+    """
+    Main orchestration logic for shade analysis.
+    Takes BGR image from cv2.imdecode.
+    """
+    h, w, _ = image_bgr.shape
+    
+    # 1. Correct lighting (Gray World + CLAHE)
+    image_bgr = correct_lighting(image_bgr)
+    image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+    
+    left_rgb, right_rgb = None, None
+    left_center, right_center = None, None
+    
+    # 2. Extract cheeks
+    if manual_sampling and sampling_points:
+        left_rgb, right_rgb, left_center, right_center = extract_manual_cheeks(image_bgr, sampling_points)
+    else:
+        # Auto mode: Use MediaPipe via DataPreprocessor
+        from ai.utils.data_preprocessor import DataPreprocessor
+        preprocessor = DataPreprocessor()
+        
+        # We need the centers for frontend canvas drawing
+        results = preprocessor.face_mesh.process(image_rgb)
+        if results.multi_face_landmarks:
+            landmarks = results.multi_face_landmarks[0]
+            # Left cheek average
+            left_idx = [117, 118, 119, 120, 121, 122, 123, 124]
+            right_idx = [346, 347, 348, 349, 350, 351, 352, 353]
+            
+            def get_mean_color(indices):
+                pts = [[int(landmarks.landmark[i].x * w), int(landmarks.landmark[i].y * h)] for i in indices]
+                pts = np.array(pts)
+                x_min, y_min = pts.min(axis=0)
+                x_max, y_max = pts.max(axis=0)
+                x_min = max(0, x_min - 10)
+                y_min = max(0, y_min - 10)
+                x_max = min(w, x_max + 10)
+                y_max = min(h, y_max + 10)
+                patch = image_rgb[y_min:y_max, x_min:x_max]
+                if patch.size > 0:
+                    return [int(c) for c in patch.mean(axis=(0, 1))]
+                return [128, 128, 128]
+                
+            left_rgb = get_mean_color(left_idx)
+            right_rgb = get_mean_color(right_idx)
+            
+            # Simple center approximation
+            def get_center(indices):
+                pts = np.array([[landmarks.landmark[i].x * w, landmarks.landmark[i].y * h] for i in indices])
+                return [int(np.mean(pts[:, 0])), int(np.mean(pts[:, 1]))]
+                
+            left_center = get_center(left_idx)
+            right_center = get_center(right_idx)
+        else:
+            raise ValueError("Could not detect face landmarks")
+            
+    # 3. Analyze Skin Color using canonical L*a*b* method
+    lab_analysis = analyze_skin_color(left_rgb, right_rgb)
+    
+    # Conditionally strip _debug
+    env_name = os.environ.get('FLASK_ENV', 'development')
+    config = config_by_name.get(env_name, config_by_name['development'])
+    if getattr(config, 'STRIP_DEBUG', False) and '_debug' in lab_analysis:
+        del lab_analysis['_debug']
+        
+    # 4. Optional: TF Model Prediction (Supplementary)
+    predictor = get_predictor()
+    tf_prediction = None
+    if predictor is not None:
+        tf_res = predictor.predict(img=image_bgr)
+        if 'error' not in tf_res:
+            # Map Olive to Neutral
+            undertone = tf_res.get('undertone')
+            if undertone == 'Olive':
+                tf_res['undertone'] = 'Neutral'
+            tf_prediction = tf_res
+
+    # 5. Recommendation (Source of truth: lab_analysis)
+    cosmetic_depth = lab_analysis['cosmetic_depth']
+    undertone = lab_analysis['undertone']
+    recommendations = get_recommendations(cosmetic_depth, undertone)
+    
+    from undertone_analyzer import rgb_to_hex
+
+    # 6. Assemble canonical contract
+    return {
+        "success": True,
+        "dimensions": {"width": w, "height": h},
+        "cheeks": {
+            "left": {
+                "center": left_center,
+                "hex": rgb_to_hex(*left_rgb),
+                "rgb": left_rgb
+            },
+            "right": {
+                "center": right_center,
+                "hex": rgb_to_hex(*right_rgb),
+                "rgb": right_rgb
+            }
+        },
+        "analysis": lab_analysis,
+        "tf_model": tf_prediction,
+        "recommendations": recommendations
+    }
