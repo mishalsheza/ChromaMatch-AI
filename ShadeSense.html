@@ -127,18 +127,6 @@
   h1 em { color: var(--rose-gold); font-style: normal; }
   .subtitle { color: var(--text-light); font-size: 1rem; line-height: 1.6; max-width: 480px; margin-bottom: 40px; }
 
-  .mode-toggle {
-    display: flex; gap: 12px; justify-content: center; margin-bottom: 28px;
-    background: var(--surface2); padding: 6px; border-radius: 50px; width: fit-content; margin-left: auto; margin-right: auto;
-    border: 1px solid var(--border);
-  }
-  .mode-btn {
-    padding: 8px 28px; border-radius: 40px; border: none; cursor: pointer; font-weight: 500;
-    background: transparent; color: var(--text-light); transition: all 0.2s;
-    font-size: 0.85rem;
-  }
-  .mode-btn.active { background: var(--rose-gold); color: white; box-shadow: 0 2px 8px rgba(232,162,162,0.3); }
-
   .drop-zone {
     border: 2px dashed var(--rose-border);
     border-radius: 24px;
@@ -172,36 +160,11 @@
   .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
   .btn-outline:hover { border-color: var(--rose-gold); color: var(--rose-gold); background: var(--rose-dim); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(232,162,162,0.2); }
 
-  /* ── PAGE 2: SAMPLER ────────────────────────── */
-  .sampler-header { margin-bottom: 24px; text-align: center; }
-  .sampler-header h2 { font-size: 1.8rem; font-weight: 400; margin-bottom: 8px; font-family: var(--font-serif); }
-  .sampler-header p { color: var(--text-light); font-size: 0.9rem; }
-
-  #canvas-wrap {
-    position: relative; border-radius: 20px; overflow: hidden;
-    border: 1px solid var(--border); background: var(--surface);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.05);
-  }
-  #sampler-canvas { display: block; max-width: 100%; height: auto; cursor: grab; user-select: none; }
-  #sampler-canvas.dragging { cursor: grabbing; }
-
-  .swatch-row { display: flex; gap: 16px; margin-top: 20px; }
-  .swatch-card {
-    flex: 1; background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 16px; padding: 14px 18px; display: flex; align-items: center; gap: 14px;
-  }
-  .swatch-circle { width: 48px; height: 48px; border-radius: 50%; border: 3px solid var(--rose-gold-light); flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-  .swatch-label { font-size: 0.85rem; font-weight: 500; color: var(--text); margin-bottom: 4px; }
-  .swatch-hex { font-size: 0.75rem; color: var(--text-light); font-family: monospace; }
-
-  .sampler-actions { display: flex; gap: 12px; margin-top: 24px; justify-content: center; }
-
-  /* ── PAGE 3: RESULTS ────────────────────────── */
+  /* ── PAGE 2: RESULTS ────────────────────────── */
   .results-header { text-align: center; margin-bottom: 20px; }
   .results-header h2 { font-size: 1.8rem; font-weight: 400; font-family: var(--font-serif); margin-top: 8px; }
   .results-subtitle { color: var(--text-light); font-size: 0.9rem; }
 
-  /* Two-column layout */
   .results-grid {
     display: grid;
     grid-template-columns: 1fr 1.2fr;
@@ -211,7 +174,6 @@
   .results-left { display: flex; flex-direction: column; gap: 16px; }
   .results-right { display: flex; flex-direction: column; gap: 16px; }
 
-  /* Image card */
   .image-card {
     background: var(--surface);
     border-radius: 20px;
@@ -221,7 +183,6 @@
   }
   .image-card img { width: 100%; display: block; object-fit: cover; }
 
-  /* Skin badge */
   .skin-badge {
     background: var(--surface2);
     border-radius: 16px;
@@ -249,8 +210,12 @@
     border-radius: 14px;
     display: inline-block;
   }
+  .skin-badge .confidence {
+    font-size: 0.75rem;
+    color: var(--text-light);
+    margin-top: 6px;
+  }
 
-  /* Foundation list */
   .foundations-card {
     background: var(--surface);
     border-radius: 20px;
@@ -267,6 +232,7 @@
     margin-bottom: 16px;
   }
   .foundation-item {
+    padding: 12px 14px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -315,7 +281,6 @@
   }
   .btn-tryon:hover { background: var(--rose-gold-dark); transform: scale(1.05); }
 
-  /* ── ITA BAR ────────────────────────── */
   .ita-row {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -369,7 +334,6 @@
   }
   .ita-center { text-align: center; }
 
-  /* ── UNDERTONE DESCRIPTION ────────────────────────── */
   .undertone-desc {
     background: var(--surface2);
     border: 1px solid var(--border);
@@ -384,8 +348,28 @@
     color: var(--text);
   }
 
-  /* ── COLOR PALETTE ────────────────────────── */
-  .palette-card {
+  .recommendations-card {
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+    margin-bottom: 20px;
+  }
+  .recommendations-card h3 {
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 16px;
+  }
+  .recommendations-text {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    line-height: 1.8;
+    white-space: pre-wrap;
+  }
+.palette-card {
     background: var(--surface);
     border-radius: 20px;
     padding: 20px;
@@ -425,10 +409,10 @@
     color: var(--text);
   }
   .palette-dot {
-    width: 14px;
-    height: 14px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
-    border: 1px solid rgba(0,0,0,0.08);
+    border: 2px solid rgba(0,0,0,0.08);
     flex-shrink: 0;
   }
   .palette-tag-avoid {
@@ -464,7 +448,6 @@
   }
   .file-label:hover { background: var(--rose-gold); color: white; }
 
-  /* Try-On Modal */
   #tryon-modal {
     display: none;
     position: fixed;
@@ -526,6 +509,56 @@
 
   .restart-btn { margin-top: 8px; width: 100%; justify-content: center; }
 
+  .color-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .color-section:first-of-type {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+  .color-section-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .color-swatch-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .color-swatch-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface2);
+    padding: 4px 12px 4px 4px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    font-size: 0.75rem;
+  }
+  .color-swatch-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid rgba(0,0,0,0.08);
+    flex-shrink: 0;
+  }
+  .color-swatch-name {
+    color: var(--text);
+  }
+  .color-swatch-hex {
+    color: var(--text-light);
+    font-size: 0.65rem;
+    font-family: monospace;
+  }
+  .color-swatch-avoid .color-swatch-name {
+    color: #A04040;
+  }
+
   @media (max-width: 768px) {
     .results-grid { grid-template-columns: 1fr; }
     h1 { font-size: 2rem; }
@@ -539,9 +572,7 @@
   <div class="step-bar">
     <div class="step" id="step1"><div class="dot"></div><span class="step-text">Upload</span></div>
     <span style="color:var(--border)">→</span>
-    <div class="step" id="step2"><div class="dot"></div><span class="step-text">Place</span></div>
-    <span style="color:var(--border)">→</span>
-    <div class="step" id="step3"><div class="dot"></div><span class="step-text">Results</span></div>
+    <div class="step" id="step2"><div class="dot"></div><span class="step-text">Results</span></div>
   </div>
 </header>
 
@@ -551,19 +582,14 @@
   <div class="page active" id="page1">
     <div class="upload-eyebrow">🎀 AI-Powered Personal Color Analytics</div>
     <h1>Find your<br>perfect <em>shade</em></h1>
-    <p class="subtitle">Upload a clear photo of your face. Drag the markers to your cheeks for precise analysis.</p>
-
-    <div class="mode-toggle" id="mode-toggle">
-      <button class="mode-btn active" data-mode="auto">🤍 Auto-Detect</button>
-      <button class="mode-btn" data-mode="manual">🎀 Manual Placement</button>
-    </div>
+    <p class="subtitle">Upload a clear photo of your face for automatic skin analysis.</p>
 
     <div class="drop-zone" id="drop-zone">
       <div class="drop-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
       <div class="drop-label">Drag & Drop your selfie</div>
       <div class="drop-sub">or click below to browse</div>
       <label class="file-label" id="file-label">📸 Choose a photo</label>
-      <input type="file" id="file-input" accept="image/jpeg,image/png,image/jpg,image/webp">
+      <input type="file" id="file-input" accept="image/jpeg,image/png,image/jpg,image/webp" capture="camera">
     </div>
 
     <div class="or-row">or</div>
@@ -583,33 +609,14 @@
     <div class="error-box" id="p1-error"><span id="p1-error-msg"></span></div>
   </div>
 
-  <!-- PAGE 2: SAMPLER -->
+  <!-- PAGE 2: RESULTS -->
   <div class="page" id="page2">
-    <div class="sampler-header">
-      <h2>🎯 Place your markers</h2>
-      <p>Drag the rose gold circles to the center of your cheeks — color updates live</p>
-    </div>
-    <div id="canvas-wrap"><canvas id="sampler-canvas"></canvas></div>
-    <div class="swatch-row">
-      <div class="swatch-card"><div class="swatch-circle" id="swatch-left"></div><div><div class="swatch-label">Left Cheek</div><div class="swatch-hex" id="hex-left">#------</div></div></div>
-      <div class="swatch-card"><div class="swatch-circle" id="swatch-right"></div><div><div class="swatch-label">Right Cheek</div><div class="swatch-hex" id="hex-right">#------</div></div></div>
-    </div>
-    <div class="sampler-actions">
-      <button class="btn btn-rose" id="analyze-btn">✨ Analyze My Skin</button>
-      <button class="btn btn-outline" id="back-btn">← Back</button>
-    </div>
-    <div class="loading-overlay" id="analyze-loading"><div class="spinner"></div><div class="loading-text">Analyzing with AI...</div></div>
-  </div>
-
-  <!-- PAGE 3: RESULTS -->
-  <div class="page" id="page3">
     <div class="results-header">
       <div class="upload-eyebrow">🎉 Your Results</div>
       <h2>Your skin profile</h2>
       <p class="results-subtitle" id="result-summary">Loading...</p>
     </div>
 
-    <!-- Two-column layout: Image + Foundations -->
     <div class="results-grid">
       <div class="results-left">
         <div class="image-card">
@@ -619,8 +626,7 @@
           <div class="tone" id="result-skin-tone">—</div>
           <div class="undertone" id="result-undertone">—</div>
           <div class="season" id="result-season">—</div>
-          <div class="archetype" id="result-archetype" style="margin-top: 12px; font-size: 0.95rem; font-weight: 600; color: var(--rose-gold-dark);">—</div>
-          <div class="confidence" id="result-confidence" style="margin-top: 6px; font-size: 0.75rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">—</div>
+          <div class="confidence" id="result-confidence">—</div>
         </div>
       </div>
 
@@ -634,13 +640,6 @@
       </div>
     </div>
 
-    <!-- Undertone Description -->
-    <div class="undertone-desc" id="undertone-desc">
-      <strong id="undertone-title">—</strong>
-      <span id="undertone-text">—</span>
-    </div>
-
-    <!-- ITA Bar -->
     <div class="ita-row">
       <div class="ita-title">Individual Typology Angle (ITA°)</div>
       <div class="ita-bar-track">
@@ -654,8 +653,11 @@
       </div>
     </div>
 
-    <!-- Color Palette -->
-    <div class="palette-card" id="palette-card">
+    <div class="undertone-desc" id="undertone-desc">
+      <strong id="undertone-title">—</strong>
+      <span id="undertone-text">—</span>
+    </div>
+<div class="palette-card" id="palette-card">
       <h3>🎨 Your Perfect Color Palette</h3>
       <div id="color-palette-content">
         <div style="color:var(--text-light);text-align:center;padding:10px;">Loading...</div>
@@ -667,7 +669,6 @@
 
 </main>
 
-<!-- TRY-ON MODAL -->
 <div id="tryon-modal">
   <div class="modal-content">
     <div class="modal-header">
@@ -696,179 +697,37 @@
 // ============================================
 // STATE
 // ============================================
-let state = {
-  imageFile: null,
-  imageEl: null,
-  canvasW: 0,
-  canvasH: 0,
-  markers: [
-    { id: 'left', label: 'Left cheek', nx: 0.32, ny: 0.52, color: '#E8A2A2' },
-    { id: 'right', label: 'Right cheek', nx: 0.68, ny: 0.52, color: '#E8A2A2' }
-  ],
-  dragging: null
-};
-
-let currentShade = '';
 let currentImageFile = null;
 let currentIntensity = 0.7;
 let uploadedImageUrl = null;
+let currentShade = null;
 
-const RADIUS = 18;
-const canvas = document.getElementById('sampler-canvas');
-const ctx = canvas.getContext('2d');
-let currentMode = 'auto';
-
-function updateSteps(activePage) {
-  for(let i=1; i<=3; i++) {
-    const step = document.getElementById(`step${i}`);
-    if(step) {
-      if(i === activePage) step.classList.add('active');
-      else step.classList.remove('active');
-    }
-  }
+function resetApp() {
+  currentImageFile = null;
+  uploadedImageUrl = null;
+  currentShade = null;
+  document.getElementById('file-input').value = '';
+  closeTryOn();
+  showPage(1);
 }
 
 function showPage(n) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const targetPage = document.getElementById('page' + n);
   if(targetPage) targetPage.classList.add('active');
-  updateSteps(n);
-}
-
-function resetApp() {
-  state.imageFile = null;
-  state.imageEl = null;
-  currentImageFile = null;
-  uploadedImageUrl = null;
-  state.markers = [
-    { id: 'left', label: 'Left cheek', nx: 0.32, ny: 0.52, color: '#E8A2A2' },
-    { id: 'right', label: 'Right cheek', nx: 0.68, ny: 0.52, color: '#E8A2A2' }
-  ];
-  if(canvas) { canvas.width = 0; canvas.height = 0; }
-  const fileInput = document.getElementById('file-input');
-  if(fileInput) fileInput.value = '';
-  closeTryOn();
-  showPage(1);
-}
-
-// ============================================
-// DRAG LOGIC
-// ============================================
-function sampleHex(nx, ny) {
-  if (!state.imageEl) return '#E8A2A2';
-  const tmp = document.createElement('canvas');
-  tmp.width = tmp.height = 1;
-  const t = tmp.getContext('2d');
-  const ix = Math.round(nx * state.imageEl.naturalWidth);
-  const iy = Math.round(ny * state.imageEl.naturalHeight);
-  t.drawImage(state.imageEl, ix, iy, 1, 1, 0, 0, 1, 1);
-  const d = t.getImageData(0,0,1,1).data;
-  return '#' + [d[0],d[1],d[2]].map(v => v.toString(16).padStart(2,'0')).join('');
-}
-
-function drawCanvas() {
-  if (!state.imageEl || !canvas || canvas.width === 0) return;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(state.imageEl, 0, 0, canvas.width, canvas.height);
-  state.markers.forEach(m => {
-    const x = m.nx * canvas.width;
-    const y = m.ny * canvas.height;
-    const active = state.dragging === m.id;
-    ctx.beginPath();
-    ctx.arc(x, y, RADIUS + (active ? 6 : 3), 0, Math.PI * 2);
-    ctx.strokeStyle = active ? 'rgba(232,162,162,0.9)' : 'rgba(232,162,162,0.5)';
-    ctx.lineWidth = active ? 3 : 1.5;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(x, y, RADIUS - 2, 0, Math.PI * 2);
-    ctx.fillStyle = m.color;
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(x, y, 4, 0, Math.PI * 2);
-    ctx.fillStyle = '#fff';
-    ctx.fill();
-    ctx.font = 'bold 12px var(--font)';
-    ctx.fillStyle = '#4A3535';
-    ctx.fillText(m.label, x - 32, y - 24);
-    ctx.fillStyle = '#E8A2A2';
-    ctx.fillText(m.label, x - 33, y - 25);
-  });
-}
-
-function updateSwatches() {
-  state.markers.forEach(m => {
-    const swatch = document.getElementById('swatch-' + m.id);
-    const hexEl = document.getElementById('hex-' + m.id);
-    if(swatch) swatch.style.background = m.color;
-    if(hexEl) hexEl.textContent = m.color;
-  });
-}
-
-function clientToCanvas(clientX, clientY) {
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-  return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
-}
-
-function hitTest(cx, cy) {
-  for (const m of state.markers) {
-    const mx = m.nx * canvas.width;
-    const my = m.ny * canvas.height;
-    if (Math.hypot(mx - cx, my - cy) < RADIUS + 14) return m.id;
+  
+  for(let i=1; i<=2; i++) {
+    const step = document.getElementById(`step${i}`);
+    if(step) {
+      if(i === n) step.classList.add('active');
+      else step.classList.remove('active');
+    }
   }
-  return null;
 }
-
-if(canvas) {
-  canvas.addEventListener('mousedown', e => {
-    const { x, y } = clientToCanvas(e.clientX, e.clientY);
-    const id = hitTest(x, y);
-    if (id) { state.dragging = id; canvas.classList.add('dragging'); e.preventDefault(); }
-  });
-}
-
-window.addEventListener('mousemove', e => {
-  if (!state.dragging || !canvas) return;
-  const { x, y } = clientToCanvas(e.clientX, e.clientY);
-  const pad = RADIUS + 4;
-  const nx = Math.max(pad, Math.min(canvas.width - pad, x)) / canvas.width;
-  const ny = Math.max(pad, Math.min(canvas.height - pad, y)) / canvas.height;
-  const color = sampleHex(nx, ny);
-  state.markers = state.markers.map(m => m.id === state.dragging ? { ...m, nx, ny, color } : m);
-  drawCanvas();
-  updateSwatches();
-});
-
-window.addEventListener('mouseup', () => { 
-  state.dragging = null; 
-  if(canvas) canvas.classList.remove('dragging'); 
-  drawCanvas(); 
-});
 
 // ============================================
 // LOAD IMAGE
 // ============================================
-function loadImageIntoCanvas(file) {
-  const url = URL.createObjectURL(file);
-  const img = new Image();
-  img.onload = () => {
-    state.imageEl = img;
-    const maxW = Math.min(580, img.naturalWidth);
-    canvas.width = maxW;
-    canvas.height = Math.round(maxW * img.naturalHeight / img.naturalWidth);
-    state.markers = state.markers.map(m => ({ ...m, color: sampleHex(m.nx, m.ny) }));
-    drawCanvas();
-    updateSwatches();
-    URL.revokeObjectURL(url);
-    showPage(2);
-  };
-  img.src = url;
-}
-
 function handleFile(file) {
   if (!file || !file.type.startsWith('image/')) { 
     const errorDiv = document.getElementById('p1-error');
@@ -878,211 +737,555 @@ function handleFile(file) {
     setTimeout(() => { if(errorDiv) errorDiv.classList.remove('show'); }, 3000);
     return; 
   }
-  state.imageFile = file;
   currentImageFile = file;
   uploadedImageUrl = URL.createObjectURL(file);
-  loadImageIntoCanvas(file);
+  
+  const resultImage = document.getElementById('result-image');
+  if (resultImage) {
+    resultImage.src = uploadedImageUrl;
+  }
+  
+  analyzeWithAI();
 }
 
 // ============================================
 // API CALL
 // ============================================
 async function analyzeWithAI() {
-  const loading = document.getElementById('analyze-loading');
-  if(loading) loading.classList.add('show');
+  if (!currentImageFile) {
+    alert('Please upload an image first!');
+    return;
+  }
   
   const formData = new FormData();
-  formData.append('image', state.imageFile);
-  formData.append('manual_sampling', 'true');
-  formData.append('sampling_points', JSON.stringify(state.markers.map(m => ({
-    x: m.nx, y: m.ny, label: m.label
-  }))));
+  formData.append('image', currentImageFile);
 
   try {
-    const response = await fetch('http://localhost:5001/api/analyze', { method: 'POST', body: formData });
+    const response = await fetch('http://localhost:5001/api/analyze', { 
+      method: 'POST', 
+      body: formData 
+    });
+    
     const data = await response.json();
     
-    if (data.success) {
+    if (response.ok && data.success) {
       displayResults(data);
+      showPage(2);
     } else {
-      throw new Error(data.error);
+      const errorMsg = data.error || 'Analysis failed. Please try again.';
+      showErrorDialog(errorMsg);
     }
   } catch (error) {
     console.error('API Error:', error);
-    alert('Could not connect to AI server. Make sure backend is running on port 5001.');
+    showErrorDialog('Could not connect to the AI server. Make sure backend is running on port 5001.');
   }
+}
+
+// ============================================
+// MARKDOWN RENDERER
+// ============================================
+function renderMarkdown(text) {
+  if (!text) return 'No recommendations available.';
   
-  if(loading) loading.classList.remove('show');
-  showPage(3);
+  // Convert Markdown to HTML
+  let html = text
+    // Headers
+    .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+    .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+    .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+    // Bold
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    // Italic
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    // Bullet lists
+    .replace(/^• (.*$)/gm, '<li>$1</li>')
+    .replace(/^\- (.*$)/gm, '<li>$1</li>')
+    // Wrap lists - improved regex
+    .replace(/((?:<li>.*<\/li>\s*)+)/g, '<ul>$1</ul>')
+    // Line breaks
+    .replace(/\n/g, '<br>');
+  
+  return html;
 }
 
 // ============================================
 // DISPLAY RESULTS
 // ============================================
 function displayResults(data) {
-  const a = data.analysis;
-  const colorRecs = data.color_recommendations;
-  
-  // Set image
-  const resultImage = document.getElementById('result-image');
-  if (uploadedImageUrl) {
-    resultImage.src = uploadedImageUrl;
-  }
-  
-  // Update skin badge
-  const skinTone = a.skin_tone || 'Medium';
-  const undertone = a.undertone || 'Neutral';
-  const season = colorRecs?.seasonal_palette?.name || undertone + ' Season';
+  const a = data.analysis || {};
+  const season = data.season || {};
+  const structuredRecs = data.structured_recommendations || {};
+  const foundations = structuredRecs.foundations || data.foundations || [];
+  // Skin badge
+  const skinTone = a.depth || '—';
+  const undertone = a.undertone || '—';
+  const seasonLabel = season.label || '—';
+  const confidence = a.confidence ? Math.round(a.confidence * 100) + '%' : '—';
   
   document.getElementById('result-skin-tone').innerHTML = '🌸 <b>' + skinTone + '</b> Skin Tone';
   document.getElementById('result-undertone').innerHTML = '💄 <b>' + undertone + '</b> Undertone';
-  document.getElementById('result-season').textContent = '🍂 ' + season;
-  document.getElementById('result-summary').innerHTML = `<b>${skinTone}</b> skin with <b>${undertone.toLowerCase()}</b> undertone — ${season}`;
-  
-  const confidence = a.confidence ? Math.round(a.confidence * 100) + '% Confidence' : 'AI Analyzed';
-  const archetype = colorRecs?.style_archetype || 'Classic Elegance';
-  
-  document.getElementById('result-confidence').textContent = '✨ ' + confidence;
-  document.getElementById('result-archetype').textContent = 'Style Archetype: ' + archetype;
+  document.getElementById('result-season').textContent = '🍂 ' + seasonLabel;
+  document.getElementById('result-confidence').textContent = '🎯 Confidence: ' + confidence;
+  document.getElementById('result-summary').innerHTML = `<b>${skinTone}</b> skin with <b>${undertone}</b> undertone — ${seasonLabel}`;
   
   // Undertone description
-  const desc = undertone === 'Warm' 
+  const undertoneDesc = undertone === 'Warm' 
     ? '🌸 Golden and peachy hues — bronze, caramel, and earth tones suit you beautifully.'
     : undertone === 'Cool'
     ? '💖 Pink and rosy hues — jewel tones, berries, and blue-based neutrals suit you.'
+    : undertone === 'Olive'
+    ? '🫒 Earthy, jewel-toned colors with a greenish cast suit you beautifully.'
     : '✨ Balanced — you can wear both warm and cool colors beautifully.';
   
   document.getElementById('undertone-title').textContent = undertone + ' Undertone — ';
-  document.getElementById('undertone-text').textContent = desc;
+  document.getElementById('undertone-text').textContent = undertoneDesc;
   
   // ITA
-  const ita = a.ita || 30;
+  const ita = a.ita_degrees || 30;
   const pct = Math.max(2, Math.min(98, ((ita + 90) / 180) * 100));
   const itaMarker = document.getElementById('ita-marker');
   const itaLabel = document.getElementById('ita-label');
   if(itaMarker) itaMarker.style.left = pct + '%';
-  if(itaLabel) itaLabel.textContent = `${a.skin_type || a.skin_tone || 'Medium'} · ITA ${ita.toFixed(1)}°`;
+  if(itaLabel) itaLabel.textContent = `${skinTone} · ITA ${ita.toFixed(1)}°`;
   
   // ── FOUNDATION MATCHES ──
   const foundationsBox = document.getElementById('foundations-box');
-  if (data.recommendations && data.recommendations.foundations && foundationsBox) {
-    foundationsBox.innerHTML = data.recommendations.foundations.map(f => `
-      <div class="foundation-item">
-        <div class="foundation-info">
-          <div class="foundation-brand">${f.brand}</div>
-          <div class="foundation-product">${f.product}</div>
+  if (foundationsBox) {
+    if (foundations.length > 0) {
+      foundationsBox.innerHTML = foundations.map(f => `
+        <div class="foundation-item">
+          <div class="foundation-info">
+            <div class="foundation-brand">${f.brand || 'Brand'}</div>
+            <div class="foundation-product">${f.product || 'Product'}</div>
+          </div>
+          <div class="foundation-actions">
+            <span class="foundation-shade">${f.shade || 'Shade'}</span>
+          </div>
         </div>
-        <div class="foundation-actions">
-          <span class="foundation-shade">${f.shade}</span>
-          <button class="btn-tryon" onclick="tryOnFoundation('${f.shade}')">👁️ Try On</button>
-        </div>
-      </div>
-    `).join('');
+      `).join('');
+    } else {
+      foundationsBox.innerHTML = `<div style="color:var(--text-light);text-align:center;padding:20px;">No foundation matches found. Try a different image.</div>`;
+    }
   }
   
   // ── COLOR PALETTE ──
   const paletteContent = document.getElementById('color-palette-content');
-  if (colorRecs) {
-    paletteContent.innerHTML = `
-      <div class="palette-row">
-        <span class="palette-label">✨ Best:</span>
-        ${colorRecs.clothing_palette.best_colors.map(c => `
-          <span class="palette-tag"><span class="palette-dot" style="background:${getColorHex(c)}"></span>${c}</span>
-        `).join('')}
-      </div>
+  if (paletteContent) {
+    // Extract data from structured recommendations
+    const lipstick = structuredRecs.season?.lipstick || [];
+    const blush = structuredRecs.season?.blush || [];
+    const jewelry = structuredRecs.season?.jewelry || season.jewelry || ['Gold', 'Silver'];
+    const bestColors = structuredRecs.season?.best_colors || {};
+    const worstColors = structuredRecs.season?.worst_colors || [];
+    const dressOccasions = structuredRecs.recommendations?.dress_occasions || {};
+    const eyeMakeup = structuredRecs.recommendations?.eye_makeup || {};
+    const specialNotes = structuredRecs.recommendations?.special_notes || {};
+    
+    let paletteHTML = '';
+    
+    // Lipstick shades with swatches
+    if (lipstick && lipstick.length > 0) {
+      paletteHTML += `
+        <div class="color-section">
+          <div class="color-section-title">💄 Lipstick Shades</div>
+          <div class="color-swatch-grid">
+            ${lipstick.map(l => `
+              <div class="color-swatch-item">
+                <div class="color-swatch-dot" style="background:${l.hex || getColorHex(l.name) || '#CC8899'}"></div>
+                <span class="color-swatch-name">${l.name || 'Shade'}</span>
+                <span class="color-swatch-hex">${l.hex || ''}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+    
+    // Blush shades with swatches
+    if (blush && blush.length > 0) {
+      paletteHTML += `
+        <div class="color-section">
+          <div class="color-section-title">🌸 Blush Shades</div>
+          <div class="color-swatch-grid">
+            ${blush.map(b => `
+              <div class="color-swatch-item">
+                <div class="color-swatch-dot" style="background:${b.hex || getColorHex(b.name) || '#F4A261'}"></div>
+                <span class="color-swatch-name">${b.name || 'Shade'}</span>
+                <span class="color-swatch-hex">${b.hex || ''}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+    
+    // Jewelry
+    if (jewelry && jewelry.length > 0) {
+      paletteHTML += `
+        <div class="color-section">
+          <div class="color-section-title">💍 Jewelry</div>
+          <div class="palette-row">
+            ${jewelry.map(j => `
+              <span class="palette-tag">
+                <span class="palette-dot" style="background:${getMetalColor(j)}"></span>
+                ${j}
+              </span>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+    
+    // Best colors
+    if (bestColors.primary && bestColors.primary.length > 0) {
+      paletteHTML += `
+        <div class="color-section">
+          <div class="color-section-title">👗 Best Primary Colors</div>
+          <div class="palette-row">
+            ${bestColors.primary.map(c => `
+              <span class="palette-tag">
+                <span class="palette-dot" style="background:${getColorHex(c)}"></span>
+                ${c}
+              </span>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+    
+    if (bestColors.secondary && bestColors.secondary.length > 0) {
+      paletteHTML += `
+        <div class="color-section">
+          <div class="color-section-title">👗 Best Secondary Colors</div>
+          <div class="palette-row">
+            ${bestColors.secondary.map(c => `
+              <span class="palette-tag">
+                <span class="palette-dot" style="background:${getColorHex(c)}"></span>
+                ${c}
+              </span>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+    
+    // Worst colors
+    if (worstColors && worstColors.length > 0) {
+      paletteHTML += `
+        <div class="color-section">
+          <div class="color-section-title">⚠️ Colors to Avoid</div>
+          <div class="palette-row">
+            ${worstColors.map(c => `
+              <span class="palette-tag palette-tag-avoid">
+                <span class="palette-dot" style="background:${getColorHex(c)}"></span>
+                ${c}
+              </span>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+    
+    // Eye makeup
+    if (eyeMakeup.best && eyeMakeup.best.length > 0) {
+      paletteHTML += `
+        <div class="color-section">
+          <div class="color-section-title">👁️ Eye Makeup</div>
+          <div class="palette-row">
+            <span class="palette-label">Best:</span>
+            ${eyeMakeup.best.map(c => `
+              <span class="palette-tag">
+                <span class="palette-dot" style="background:${getColorHex(c)}"></span>
+                ${c}
+              </span>
+            `).join('')}
+          </div>
+          ${eyeMakeup.avoid && eyeMakeup.avoid.length > 0 ? `
+            <div class="palette-row">
+              <span class="palette-label">Avoid:</span>
+              ${eyeMakeup.avoid.map(c => `
+                <span class="palette-tag palette-tag-avoid">
+                  <span class="palette-dot" style="background:${getColorHex(c)}"></span>
+                  ${c}
+                </span>
+              `).join('')}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+    
+    // Dress occasions
+    if (Object.keys(dressOccasions).length > 0) {
+      paletteHTML += `
+        <div class="color-section">
+          <div class="color-section-title">👚 Outfit Ideas by Occasion</div>
+          ${Object.entries(dressOccasions).map(([occasion, items]) => {
+            const occasionName = occasion
+              .replace(/_/g, ' ')
+              .replace(/\b\w/g, l => l.toUpperCase());
+            return `
+              <div class="palette-row">
+                <span class="palette-label">${occasionName}:</span>
+                ${items.map(item => `
+                  <span class="palette-tag">
+                    <span class="palette-dot" style="background:${getColorHex(item)}"></span>
+                    ${item}
+                  </span>
+                `).join('')}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+    
+    // Special notes
+    if (specialNotes && Object.keys(specialNotes).length > 0) {
+      const notes = [];
+      if (specialNotes.pigmented_lips) notes.push(`💋 ${specialNotes.pigmented_lips}`);
+      if (specialNotes.hyperpigmentation) notes.push(`✨ ${specialNotes.hyperpigmentation}`);
+      if (specialNotes.olive_skin) notes.push(`🫒 ${specialNotes.olive_skin}`);
       
-      ${colorRecs.clothing_palette.avoid_colors ? `
-      <div class="palette-row">
-        <span class="palette-label">⚠️ Avoid:</span>
-        ${colorRecs.clothing_palette.avoid_colors.map(c => `
-          <span class="palette-tag palette-tag-avoid"><span class="palette-dot" style="background:${getColorHex(c)}"></span>${c}</span>
-        `).join('')}
-      </div>
-      ` : ''}
-      
-      <div class="palette-row">
-        <span class="palette-label">💍 Jewelry:</span>
-        ${colorRecs.jewelry.recommended.split(',').map(m => `
-          <span class="palette-tag"><span class="palette-dot" style="background:${getMetalColor(m.trim())}"></span>${m.trim()}</span>
-        `).join('')}
-      </div>
-      
-      <div class="palette-row">
-        <span class="palette-label">💄 Makeup:</span>
-        <span class="palette-tag"><span class="palette-dot" style="background:#F4A261"></span>Blush: ${colorRecs.makeup.blush}</span>
-        <span class="palette-tag"><span class="palette-dot" style="background:#C83060"></span>Lipstick: ${colorRecs.makeup.lipstick}</span>
-      </div>
-      
-      <div class="palette-row">
-        <span class="palette-label">💇 Hair:</span>
-        ${colorRecs.hair_colors.map(c => `
-          <span class="palette-tag"><span class="palette-dot" style="background:${getHairColor(c)}"></span>${c}</span>
-        `).join('')}
-      </div>
-    `;
+      if (notes.length > 0) {
+        paletteHTML += `
+          <div class="color-section">
+            <div class="color-section-title">✨ Special Notes</div>
+            <ul style="list-style:none;padding:0;margin:0;">
+              ${notes.map(n => `<li style="padding:4px 0;color:var(--text-light);font-size:0.85rem;">${n}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      }
+    }
+    
+    paletteContent.innerHTML = paletteHTML || '<div style="color:var(--text-light);text-align:center;padding:10px;">No palette data available.</div>';
   }
 }
 
 // ── HELPER COLOR FUNCTIONS ──
-function getColorHex(colorName) {
-  if (!colorName) return '#D4A0A0';
-  const n = colorName.toLowerCase();
-  if(n.includes('orange')) return '#FF8C42';
-  if(n.includes('peach')) return '#FFDAB9';
-  if(n.includes('coral')) return '#FF7F50';
-  if(n.includes('gold') && !n.includes('rose')) return '#D4AF37';
-  if(n.includes('olive') || n.includes('khaki')) return '#556B2F';
-  if(n.includes('navy')) return '#000080';
-  if(n.includes('blue')) return '#4A90D9';
-  if(n.includes('emerald') || n.includes('green') || n.includes('mint')) return '#50C878';
-  if(n.includes('purple') || n.includes('plum') || n.includes('violet') || n.includes('lavender')) return '#9B59B6';
-  if(n.includes('red') || n.includes('crimson') || n.includes('scarlet')) return '#C41E3A';
-  if(n.includes('pink') || n.includes('rose') || n.includes('magenta') || n.includes('fuchsia')) return '#FF6B8A';
-  if(n.includes('silver')) return '#C0C0C0';
-  if(n.includes('berry')) return '#8B1A4A';
-  if(n.includes('taupe')) return '#B8A898';
-  if(n.includes('teal') || n.includes('cyan')) return '#008080';
-  if(n.includes('burgundy') || n.includes('maroon') || n.includes('wine')) return '#800020';
-  if(n.includes('yellow') || n.includes('mustard')) return '#E1AD01';
-  if(n.includes('white')) return '#FFFFFF';
-  if(n.includes('black')) return '#000000';
-  if(n.includes('grey') || n.includes('gray') || n.includes('charcoal')) return '#808080';
-  if(n.includes('brown') || n.includes('chocolate') || n.includes('chestnut') || n.includes('earth')) return '#8B4513';
-  if(n.includes('cream') || n.includes('ivory')) return '#FFFFF0';
-  if(n.includes('champagne')) return '#F7E7CE';
-  if(n.includes('beige')) return '#F5F5DC';
-  
-  return '#D4A0A0';
-}
-
 function getMetalColor(metal) {
   if(!metal) return '#D4AF37';
   const m = metal.toLowerCase();
   if(m.includes('rose gold')) return '#E8A2A2';
-  if(m.includes('white gold') || m.includes('platinum') || m.includes('silver')) return '#E5E4E2';
+  if(m.includes('platinum') || m.includes('silver')) return '#E5E4E2';
   if(m.includes('copper') || m.includes('bronze')) return '#B87333';
   if(m.includes('brass')) return '#B5A642';
+  if(m.includes('gold')) return '#D4AF37';
   return '#D4AF37';
 }
 
-function getHairColor(color) {
-  if(!color) return '#8B6B4B';
-  const c = color.toLowerCase();
-  if(c.includes('blonde') || c.includes('blond')) {
-    if(c.includes('ash')) return '#D4C4B0';
-    if(c.includes('platinum')) return '#F0E8E0';
-    if(c.includes('honey')) return '#E8C88A';
-    return '#E8D0A0';
+function getColorHex(color) {
+  if (!color) return '#CCCCCC';
+  
+  const c = color.toLowerCase().trim();
+  
+  // Extended color map with specific shades
+  const colorMap = {
+    // Reds
+    'red': '#FF0000',
+    'true red': '#C8102E',
+    'tomato red': '#FF6347',
+    'raspberry': '#E30B5C',
+    'rose': '#E0B0B8',
+    'rose pink': '#C08497',
+    'dusty rose': '#C79EA6',
+    'berry': '#8B3A62',
+    'berry mauve': '#B76E79',
+    'muted raspberry': '#A85C6B',
+    'coral': '#FF7F50',
+    'warm coral': '#FF6F61',
+    'soft coral': '#FFC1B6',
+    'peach': '#FFE5B4',
+    'soft peach': '#FFDAB9',
+    'muted peach': '#C99A7B',
+    'apricot': '#FFAB76',
+    'fuchsia': '#FF00FF',
+    'hot pink': '#FF69B4',
+    'cool pink': '#D8A0A8',
+    'powder pink': '#F4C2C2',
+    
+    // Blues
+    'blue': '#0000FF',
+    'navy': '#000080',
+    'soft navy': '#4A6B8A',
+    'grayed navy': '#5A6B7A',
+    'slate blue': '#6A5ACD',
+    'royal blue': '#4169E1',
+    'sapphire': '#0F52BA',
+    'cobalt': '#0047AB',
+    'periwinkle': '#CCCCFF',
+    'dusty blue': '#8A9BA8',
+    'icy blue': '#D0E8F0',
+    'soft blue': '#B0C4DE',
+    'baby blue': '#89CFF0',
+    'cool blue': '#4682B4',
+    'teal': '#008080',
+    'soft teal': '#6B8E8A',
+    'muted teal': '#5A7A76',
+    'deep teal': '#004D4D',
+    'turquoise': '#40E0D0',
+    'aqua': '#00FFFF',
+    'seafoam': '#C0E8D0',
+    
+    // Greens
+    'green': '#008000',
+    'grass green': '#5A8A4A',
+    'leaf green': '#4A8A3A',
+    'emerald': '#50C878',
+    'forest green': '#228B22',
+    'olive': '#808000',
+    'olive green': '#6B6B00',
+    'soft olive': '#8A8A5A',
+    'sage': '#8A9A6A',
+    'sage green': '#7C8C5E',
+    'mint': '#A0D8B0',
+    
+    // Yellows/Oranges
+    'yellow': '#FFFF00',
+    'gold': '#FFD700',
+    'golden yellow': '#FFDF00',
+    'warm gold': '#D4A843',
+    'dusty gold': '#C4A86A',
+    'mustard': '#E1AD01',
+    'orange': '#FFA500',
+    'burnt orange': '#CC5500',
+    'rust': '#A04020',
+    'pumpkin': '#FF7518',
+    'amber': '#FFBF00',
+    'bright orange': '#FF6600',
+    'terracotta': '#CC7351',
+    'soft terracotta': '#D8A87D',
+    'muted terracotta': '#C97B5B',
+    'camel': '#C4A060',
+    'warm brown': '#8B6B40',
+    'chocolate brown': '#6B3A2A',
+    'brown': '#A52A2A',
+    'mahogany': '#6B1A0A',
+    'cinnamon': '#D2691E',
+    'copper': '#B87333',
+    'bronze': '#CD7F32',
+    
+    // Purples
+    'purple': '#800080',
+    'plum': '#DDA0DD',
+    'soft plum': '#C8A0C8',
+    'deep plum': '#6B2A6B',
+    'lavender': '#E6E6FA',
+    'muted lavender': '#D0C0D0',
+    'mauve': '#E0B0FF',
+    'soft mauve': '#D8A8D8',
+    'muted mauve': '#C48A94',
+    'violet': '#EE82EE',
+    'royal purple': '#6B3A8A',
+    'deep magenta': '#8B008B',
+    
+    // Neutrals
+    'black': '#000000',
+    'white': '#FFFFFF',
+    'gray': '#808080',
+    'grayed': '#8A8A8A',
+    'charcoal': '#4A4A4A',
+    'taupe': '#8B7B6B',
+    'warm taupe': '#9A8A7A',
+    'cool taupe': '#7E8083',
+    'beige': '#E8D8C0',
+    'warm ivory': '#F0E8D0',
+    'cream': '#FFFDD0',
+    'dusty': '#C4B8B0',
+    'silver': '#C0C0C0',
+    'silver gray': '#C0C0C0',
+    'matte silver': '#B8B8B8',
+    'brushed silver': '#C8C8C8',
+    'pewter': '#A8A8A0',
+    'rose gold': '#E8A2A2',
+    'brass': '#B5A642',
+    'platinum': '#E5E4E2',
+    'white gold': '#E8E0D8',
+    'antique gold': '#C4A050',
+    'yellow gold': '#FFD700',
+    'bright gold': '#FFDF00',
+    'burgundy': '#800020',
+    
+    // Spring colors
+    'bright spring': '#FF8C69',
+    'light spring': '#FFDAB9',
+    'true spring': '#FF6347',
+    
+    // Summer colors
+    'light summer': '#E8A0BF',
+    'true summer': '#C08497',
+    'soft summer': '#C48A94',
+    
+    // Autumn colors
+    'soft autumn': '#C97B5B',
+    'true autumn': '#B7410E',
+    'deep autumn': '#8B3A2B',
+    
+    // Winter colors
+    'deep winter': '#7B1E3A',
+    'true winter': '#C8102E',
+    'bright winter': '#E0115F'
+  };
+  
+  // Try exact match first
+  if (colorMap[c]) return colorMap[c];
+  
+  // Try to find by partial match
+  for (const [key, hex] of Object.entries(colorMap)) {
+    if (c.includes(key) || key.includes(c)) {
+      return hex;
+    }
   }
-  if(c.includes('black')) return '#1A1A1A';
-  if(c.includes('caramel')) return '#C88A50';
-  if(c.includes('red') || c.includes('copper') || c.includes('auburn')) return '#A52A2A';
-  if(c.includes('brown') || c.includes('chestnut')) {
-    if(c.includes('dark')) return '#5C3A2A';
-    if(c.includes('light')) return '#A0522D';
-    return '#8B5A3C';
+  
+  // If still not found, try to extract the main color word
+  const words = c.split(' ');
+  for (const word of words) {
+    if (colorMap[word]) return colorMap[word];
   }
-  return '#8B6B4B';
+  
+  // Generate a consistent color based on the text
+  // This ensures the same text always gets the same color
+  let hash = 0;
+  for (let i = 0; i < c.length; i++) {
+    hash = c.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 60%, 70%)`;
+}
+
+function showErrorDialog(message) {
+  const paletteContent = document.getElementById('color-palette-content');
+  const foundationsBox = document.getElementById('foundations-box');
+  
+  if (paletteContent) {
+    paletteContent.innerHTML = `
+      <div style="background: rgba(232,130,130,0.08); border: 1px solid rgba(232,130,130,0.2); border-radius: 12px; padding: 20px; text-align: center;">
+        <div style="font-size: 2rem; margin-bottom: 8px;">⚠️</div>
+        <h3 style="color: #D47A7A; margin-bottom: 8px;">${message}</h3>
+        <p style="color: var(--text-light); font-size: 0.85rem; margin-bottom: 16px;">
+          For best results:
+        </p>
+        <ul style="list-style: none; padding: 0; text-align: left; max-width: 400px; margin: 0 auto; color: var(--text-light); font-size: 0.8rem; line-height: 1.8;">
+          <li>🌞 Use natural daylight</li>
+          <li>👀 Face the camera directly</li>
+          <li>💇 Keep hair away from your face</li>
+          <li>✨ No makeup on the skin</li>
+        </ul>
+        <button onclick="resetApp()" class="btn btn-rose" style="margin-top: 16px;">📸 Try Again</button>
+      </div>
+    `;
+  }
+  
+  if (foundationsBox) {
+    foundationsBox.innerHTML = `<div style="color:var(--text-light);text-align:center;padding:20px;">⚠️ ${message}</div>`;
+  }
+  
+  if (recommendationsText) {
+    recommendationsText.textContent = 'Analysis failed. Please try again with a better photo.';
+  }
+  
+  showPage(2);
 }
 
 // ============================================
@@ -1109,83 +1312,14 @@ if(dropZone) {
   });
 }
 
-const backBtn = document.getElementById('back-btn');
-if(backBtn) backBtn.addEventListener('click', () => showPage(1));
-
-const analyzeBtn = document.getElementById('analyze-btn');
-if(analyzeBtn) analyzeBtn.addEventListener('click', analyzeWithAI);
-
 const restartBtn = document.getElementById('restart-btn');
 if(restartBtn) restartBtn.addEventListener('click', resetApp);
-
-const modeBtns = document.querySelectorAll('.mode-btn');
-modeBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    modeBtns.forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentMode = btn.dataset.mode;
-  });
-});
-
-// Webcam
-const camBtn = document.getElementById('cam-btn');
-const camSection = document.getElementById('cam-section');
-const camVideo = document.getElementById('cam-video');
-const camCancelBtn = document.getElementById('cam-cancel-btn');
-const captureBtn = document.getElementById('capture-btn');
-let camStream = null;
-
-if(camBtn) {
-  camBtn.addEventListener('click', async () => {
-    try {
-      camStream = await navigator.mediaDevices.getUserMedia({ video: true });
-      if(camVideo) camVideo.srcObject = camStream;
-      if(camSection) camSection.style.display = 'block';
-      if(camBtn) camBtn.style.display = 'none';
-    } catch(e) { 
-      const errorMsg = document.getElementById('p1-error-msg');
-      if(errorMsg) errorMsg.textContent = 'Camera access denied';
-      const errorDiv = document.getElementById('p1-error');
-      if(errorDiv) errorDiv.classList.add('show');
-      setTimeout(() => { if(errorDiv) errorDiv.classList.remove('show'); }, 3000);
-    }
-  });
-}
-
-if(camCancelBtn) {
-  camCancelBtn.addEventListener('click', () => {
-    if(camStream) camStream.getTracks().forEach(t => t.stop());
-    if(camSection) camSection.style.display = 'none';
-    if(camBtn) camBtn.style.display = '';
-  });
-}
-
-if(captureBtn) {
-  captureBtn.addEventListener('click', () => {
-    if(camVideo) {
-      const c = document.createElement('canvas');
-      c.width = camVideo.videoWidth;
-      c.height = camVideo.videoHeight;
-      const cx = c.getContext('2d');
-      cx.translate(c.width, 0);
-      cx.scale(-1, 1);
-      cx.drawImage(camVideo, 0, 0);
-      c.toBlob(blob => {
-        if(camStream) camStream.getTracks().forEach(t => t.stop());
-        if(camSection) camSection.style.display = 'none';
-        if(camBtn) camBtn.style.display = '';
-        handleFile(new File([blob], 'selfie.png', { type: 'image/png' }));
-      }, 'image/png');
-    }
-  });
-}
 
 // ============================================
 // TRY-ON FUNCTIONS
 // ============================================
 async function tryOnFoundation(shade) {
     currentShade = shade;
-    
     const modal = document.getElementById('tryon-modal');
     modal.classList.add('show');
     
@@ -1242,6 +1376,59 @@ function adjustIntensity() {
     if (currentShade) {
         tryOnFoundation(currentShade);
     }
+}
+
+// Webcam
+const camBtn = document.getElementById('cam-btn');
+const camSection = document.getElementById('cam-section');
+const camVideo = document.getElementById('cam-video');
+const camCancelBtn = document.getElementById('cam-cancel-btn');
+const captureBtn = document.getElementById('capture-btn');
+let camStream = null;
+
+if(camBtn) {
+  camBtn.addEventListener('click', async () => {
+    try {
+      camStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if(camVideo) camVideo.srcObject = camStream;
+      if(camSection) camSection.style.display = 'block';
+      if(camBtn) camBtn.style.display = 'none';
+    } catch(e) { 
+      const errorMsg = document.getElementById('p1-error-msg');
+      if(errorMsg) errorMsg.textContent = 'Camera access denied';
+      const errorDiv = document.getElementById('p1-error');
+      if(errorDiv) errorDiv.classList.add('show');
+      setTimeout(() => { if(errorDiv) errorDiv.classList.remove('show'); }, 3000);
+    }
+  });
+}
+
+if(camCancelBtn) {
+  camCancelBtn.addEventListener('click', () => {
+    if(camStream) camStream.getTracks().forEach(t => t.stop());
+    if(camSection) camSection.style.display = 'none';
+    if(camBtn) camBtn.style.display = '';
+  });
+}
+
+if(captureBtn) {
+  captureBtn.addEventListener('click', () => {
+    if(camVideo) {
+      const c = document.createElement('canvas');
+      c.width = camVideo.videoWidth;
+      c.height = camVideo.videoHeight;
+      const cx = c.getContext('2d');
+      cx.translate(c.width, 0);
+      cx.scale(-1, 1);
+      cx.drawImage(camVideo, 0, 0);
+      c.toBlob(blob => {
+        if(camStream) camStream.getTracks().forEach(t => t.stop());
+        if(camSection) camSection.style.display = 'none';
+        if(camBtn) camBtn.style.display = '';
+        handleFile(new File([blob], 'selfie.png', { type: 'image/png' }));
+      }, 'image/png');
+    }
+  });
 }
 </script>
 </body>

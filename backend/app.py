@@ -1,272 +1,100 @@
+"""
+app.py — ShadeSense AI v2 (Colorimetry-based)
+- Face color extraction using LAB color space
+- Foundation matching with Delta-E 2000
+- 12-season color analysis
+- Groq AI recommendations
+- Try-On feature (migrated from old version)
+"""
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import tensorflow as tf
 import cv2
 import numpy as np
 import os
+import sys
 import json
 import uuid
 import math
 
 # ──────────────────────────────────────────────────────────────
-# CREATE FLASK APP FIRST
+# PATH SETUP
+# ──────────────────────────────────────────────────────────────
+ROOT_DIR = os.path.dirname(os.path.dirname(__file__))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
+
+# ──────────────────────────────────────────────────────────────
+# CREATE FLASK APP
 # ──────────────────────────────────────────────────────────────
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:5001", "http://localhost:5500", "http://localhost:5173", "*"])
 
-# ──────────────────────────────────────────────────────────────
-# IMPORT FACE DETECTOR
-# ──────────────────────────────────────────────────────────────
-from face_detector_v2 import FaceDetector
-detector = FaceDetector()
+print("\n" + "=" * 60)
+print("🚀 ShadeSense AI v2 Starting...")
+print("=" * 60)
 
 # ──────────────────────────────────────────────────────────────
-# IMPORT TRY-ON MODULE
+# IMPORT MODULES
 # ──────────────────────────────────────────────────────────────
-from foundation_tryon import FoundationTryOn
-tryon = FoundationTryOn()
+try:
+    from ai.colorimetry.face_color import analyze_face_color
+    print("✅ Face color extraction loaded")
+except Exception as e:
+    print(f"❌ Face color extraction error: {e}")
+
+try:
+    from ai.recommendation.match import load_foundation_db, match_foundations
+    foundations = load_foundation_db()
+    if foundations is None:
+        foundations = []
+    print(f"✅ Foundation database loaded: {len(foundations)} shades")
+except Exception as e:
+    print(f"❌ Foundation DB error: {e}")
+    foundations = []
+
+try:
+    from ai.recommendation.season import get_season_recommendations
+    print("✅ Season classification loaded")
+except Exception as e:
+    print(f"❌ Season classification error: {e}")
 
 # ──────────────────────────────────────────────────────────────
-# LOAD AI MODEL
+# IMPORT GROQ AI RECOMMENDATIONS
+# ──────────────────────────────────────────────────────────────
+try:
+    from ai.recommendation.groq_writer import get_ai_recommendations
+    print("✅ Groq AI recommendations loaded")
+except Exception as e:
+    print(f"⚠️ Groq AI recommendations error: {e}")
+    get_ai_recommendations = None
+    print("⚠️ No recommendation writer available")
+
+# ──────────────────────────────────────────────────────────────
+# TRY-ON MODULE
+# ──────────────────────────────────────────────────────────────
+try:
+    from foundation_tryon import FoundationTryOn
+    tryon = FoundationTryOn()
+    print("✅ Try-On module loaded")
+except Exception as e:
+    print(f"⚠️ Try-On module error: {e}")
+    tryon = None
+
+# ──────────────────────────────────────────────────────────────
+# OLD CNN MODEL (kept for reference, not used)
 # ──────────────────────────────────────────────────────────────
 model_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'ai/models/balanced_skin_analyzer.h5')
 model = None
 if os.path.exists(model_path):
     try:
+        import tensorflow as tf
         model = tf.keras.models.load_model(model_path)
-        print("✅ AI Model loaded!")
+        print("✅ CNN model loaded (for reference only)")
     except Exception as e:
-        print(f"Model load error: {e}")
+        print(f"⚠️ CNN model not loaded: {e}")
 
-# ──────────────────────────────────────────────────────────────
-# MINICPM-V RECOMMENDATIONS FUNCTION
-# ──────────────────────────────────────────────────────────────
-def get_minicpm_recommendations(skin_tone, undertone):
-    """Get structured color recommendations using MiniCPM-V"""
-    from openai import OpenAI
-    import json
-    
-    try:
-        client = OpenAI(
-            api_key="sk-pQ8L2zF3XmR5kY9wV4jB7hN1tC6vM0xG3aD5sH2bJ9lK4cZ8",
-            base_url="https://api.modelbest.cn/v1"
-        )
-        
-        prompt = f"""
-You are a professional color analyst for Indian skin tones.
-
-Based ONLY on this skin profile:
-- Skin Tone: {skin_tone}
-- Undertone: {undertone}
-
-Return EXACTLY this JSON structure with REAL, specific, and WEARABLE recommendations:
-{{
-  "best_colors": ["5 specific color names that suit this skin tone"],
-  "worst_colors": ["3 specific color names to avoid"],
-  "jewelry": "One specific metal",
-  "hair_colors": ["3 specific hair colors"],
-  "makeup": {{
-    "blush": "One specific blush shade",
-    "lipstick": "One specific lipstick shade"
-  }},
-  "style_archetype": "A 2-3 word style name",
-  "celebrity_references": ["2 Indian celebrities with similar coloring"],
-  "description": "1 sentence explaining the best colors"
-}}
-
-Use REAL, WEARABLE cosmetic shade names.
-"""
-        
-        response = client.chat.completions.create(
-            model="MiniCPM-V-4.6-Instruct",
-            messages=[
-                {"role": "system", "content": "You are a color analysis expert. Always return valid JSON with specific, real color names."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.3,
-            max_tokens=500
-        )
-        
-        result_text = response.choices[0].message.content
-        result_text = result_text.strip()
-        if result_text.startswith("```"):
-            lines = result_text.split('\n')
-            if lines[0].startswith("```"): lines = lines[1:]
-            if lines and lines[-1].startswith("```"): lines = lines[:-1]
-            result_text = '\n'.join(lines).strip()
-            
-        minicpm_data = json.loads(result_text)
-        
-        return {
-            "style_archetype": minicpm_data.get("style_archetype", "Classic Elegance"),
-            "seasonal_palette": {"name": minicpm_data.get("style_archetype", f"{undertone} Season")},
-            "clothing_palette": {
-                "best_colors": minicpm_data.get("best_colors", ["Navy", "Burgundy", "Olive"]),
-                "avoid_colors": minicpm_data.get("worst_colors", ["Neon Yellow", "Bright Orange"])
-            },
-            "jewelry": {"recommended": minicpm_data.get("jewelry", "Gold")},
-            "makeup": {
-                "blush": minicpm_data.get("makeup", {}).get("blush", "Warm Peach"),
-                "lipstick": minicpm_data.get("makeup", {}).get("lipstick", "Terracotta")
-            },
-            "hair_colors": minicpm_data.get("hair_colors", ["Dark Brown", "Caramel"]),
-            "celebrity_references": minicpm_data.get("celebrity_references", []),
-            "description": minicpm_data.get("description", "")
-        }
-        
-    except Exception as e:
-        print(f"⚠️ MiniCPM API Error: {e}")
-        return get_color_recommendations(skin_tone, undertone)
-
-
-# ──────────────────────────────────────────────────────────────
-# COLOR RECOMMENDATIONS FUNCTION (FALLBACK)
-# ──────────────────────────────────────────────────────────────
-def get_color_recommendations(skin_tone, undertone):
-    """Fallback rule-based recommendations"""
-    tone_recommendations = {
-        "Light": {
-            "clothing": ["Pastel Pink", "Lavender", "Mint Green", "Baby Blue"],
-            "makeup": {"blush": "Peach Blush", "lipstick": "Rose"},
-            "jewelry": "Silver, Rose Gold",
-            "hair_colors": ["Ash Blonde", "Platinum", "Honey Blonde"],
-            "description": "Light skin looks stunning in soft, pastel shades."
-        },
-        "Medium": {
-            "clothing": ["Coral", "Teal", "Olive Green", "Warm Red"],
-            "makeup": {"blush": "Warm Peach Blush", "lipstick": "Terracotta"},
-            "jewelry": "Gold, Rose Gold",
-            "hair_colors": ["Caramel", "Chestnut Brown", "Warm Blonde"],
-            "description": "Medium skin radiates in warm, earthy tones."
-        },
-        "Deep": {
-            "clothing": ["Burgundy", "Emerald Green", "Royal Blue", "Deep Purple"],
-            "makeup": {"blush": "Deep Berry Blush", "lipstick": "Plum"},
-            "jewelry": "Gold, Brass",
-            "hair_colors": ["Dark Brown", "Jet Black", "Warm Caramel"],
-            "description": "Deep skin glows in rich, jewel-toned colors."
-        }
-    }
-    
-    undertone_map = {
-        "Warm": {
-            "best_colors": ["Orange", "Peach", "Coral", "Gold", "Olive Green"],
-            "avoid_colors": ["Cool Blue", "Silver", "Hot Pink"],
-            "jewelry": "Gold",
-            "description": "Warm undertones shine in golden, peachy shades."
-        },
-        "Cool": {
-            "best_colors": ["Blue", "Purple", "Pink", "Emerald Green", "Silver"],
-            "avoid_colors": ["Orange", "Yellow", "Peach"],
-            "jewelry": "Silver",
-            "description": "Cool undertones pop in jewel tones and blue-based colors."
-        },
-        "Neutral": {
-            "best_colors": ["Dusty Pink", "Sage Green", "Mauve", "Taupe"],
-            "avoid_colors": ["NEON colors"],
-            "jewelry": "Both Gold and Silver",
-            "description": "Neutral undertones can wear both warm and cool colors."
-        },
-        "Olive": {
-            "best_colors": ["Teal", "Burgundy", "Navy", "Forest Green"],
-            "avoid_colors": ["Pastels", "Orange", "Yellow"],
-            "jewelry": "Gold, Bronze",
-            "description": "Olive undertones glow in earthy, jewel-toned colors."
-        }
-    }
-    
-    base = tone_recommendations.get(skin_tone, tone_recommendations["Medium"])
-    under = undertone_map.get(undertone, undertone_map["Neutral"])
-    
-    return {
-        "style_archetype": f"{undertone} Elegance",
-        "seasonal_palette": {"name": f"{undertone} Season"},
-        "clothing_palette": {
-            "best_colors": under.get("best_colors", []),
-            "avoid_colors": under.get("avoid_colors", [])
-        },
-        "jewelry": {"recommended": under.get("jewelry", "Gold")},
-        "makeup": base.get("makeup", {"blush": "Rose", "lipstick": "Nude"}),
-        "hair_colors": base.get("hair_colors", []),
-        "celebrity_references": [],
-        "description": base.get("description", "") + " " + under.get("description", "")
-    }
-
-
-# ──────────────────────────────────────────────────────────────
-# HELPER: GET PATCH
-# ──────────────────────────────────────────────────────────────
-def get_patch(img, px, py, patch_size=15):
-    """Extract a patch around a point"""
-    h, w = img.shape[:2]
-    x_start = max(0, px - patch_size // 2)
-    x_end = min(w, px + patch_size // 2)
-    y_start = max(0, py - patch_size // 2)
-    y_end = min(h, py + patch_size // 2)
-    patch = img[y_start:y_end, x_start:x_end]
-    if patch.size > 0:
-        return patch
-    return None
-
-
-# ──────────────────────────────────────────────────────────────
-# COMBINED SKIN COLOR FUNCTION
-# ──────────────────────────────────────────────────────────────
-def get_combined_skin_color(img_bgr, sampling_points=None, return_scan=False):
-    """Hybrid: Manual pointers + automatic sampling + full face scan"""
-    h, w = img_bgr.shape[:2]
-    all_colors = []
-    weights = []
-    
-    # 1. Manual pointers (user placed)
-    if sampling_points and len(sampling_points) >= 2:
-        for point in sampling_points:
-            px = int(point['x'] * w)
-            py = int(point['y'] * h)
-            patch = get_patch(img_bgr, px, py)
-            if patch is not None:
-                patch_rgb = cv2.cvtColor(patch, cv2.COLOR_BGR2RGB)
-                all_colors.append(np.mean(patch_rgb, axis=(0, 1)))
-                weights.append(0.25)
-    
-    # 2. Full face scan (most accurate)
-    full_face_scan, scan_success, scan_error = detector.scan_full_face(img_bgr)
-    if scan_success and full_face_scan:
-        median_rgb = full_face_scan["median_skin_color"]["rgb"]
-        all_colors.append(np.array(median_rgb, dtype=float))
-        weights.append(0.45)
-        print(f"📊 Full Face Scan: Quality {full_face_scan['quality_score']}/100")
-    else:
-        print(f"⚠️ Full Face Scan failed: {scan_error}")
-        full_face_scan = None
-    
-    # 3. Region sampling (fallback)
-    region_colors, success, error, face_box = detector.detect_face_regions(img_bgr)
-    if success and region_colors:
-        for region in ["left_cheek", "right_cheek", "jawline_left", "chin"]:
-            if region in region_colors:
-                lab_arr = np.uint8([[region_colors[region]]])
-                rgb_arr = cv2.cvtColor(lab_arr, cv2.COLOR_LAB2RGB)
-                all_colors.append(rgb_arr[0][0].astype(float))
-                weights.append(0.10 if scan_success else 0.20)
-    
-    if not all_colors:
-        img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-        fallback_rgb = np.mean(img_rgb, axis=(0, 1))
-        if return_scan:
-            return fallback_rgb, None
-        return fallback_rgb
-    
-    weights = np.array(weights) / sum(weights)
-    
-    final_rgb = np.zeros(3)
-    for i, color in enumerate(all_colors):
-        final_rgb += color * weights[i]
-    
-    if return_scan:
-        return final_rgb, full_face_scan
-    return final_rgb
-
+print("=" * 60 + "\n")
 
 # ──────────────────────────────────────────────────────────────
 # ROUTES
@@ -274,14 +102,34 @@ def get_combined_skin_color(img_bgr, sampling_points=None, return_scan=False):
 
 @app.route('/')
 def index():
-    return jsonify({'message': 'ShadeSense AI Backend Running'})
+    return jsonify({
+        'message': 'ShadeSense AI v2',
+        'version': '2.0.0',
+        'method': 'colorimetry',
+        'endpoints': {
+            'POST /api/analyze': 'Main analysis endpoint',
+            'POST /api/tryon': 'Try-On foundation preview',
+            'GET /api/health': 'Health check'
+        }
+    })
 
 @app.route('/api/health', methods=['GET'])
 def health():
-    return jsonify({'status': 'healthy', 'model_loaded': model is not None})
+    return jsonify({
+        'status': 'healthy',
+        'version': '2.0.0',
+        'method': 'colorimetry',
+        'foundations_loaded': len(foundations)
+    })
 
 @app.route('/api/tryon', methods=['POST'])
 def try_foundation():
+    """
+    Try-On foundation preview
+    """
+    if tryon is None:
+        return jsonify({'error': 'Try-On module not available'}), 503
+    
     if 'image' not in request.files:
         return jsonify({'error': 'No image provided'}), 400
     
@@ -297,7 +145,11 @@ def try_foundation():
     
     try:
         result_base64 = tryon.apply_foundation(temp_path, shade_name, intensity)
-        return jsonify({'success': True, 'image': result_base64, 'shade': shade_name})
+        return jsonify({
+            'success': True,
+            'image': result_base64,
+            'shade': shade_name
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     finally:
@@ -307,171 +159,199 @@ def try_foundation():
 
 @app.route('/api/analyze', methods=['POST'])
 def analyze():
+    """
+    Main analysis endpoint - uses colorimetry pipeline + Groq AI
+    """
     if 'image' not in request.files:
-        return jsonify({'error': 'No image'}), 400
+        return jsonify({'error': 'No image provided'}), 400
     
     file = request.files['image']
     img_array = np.frombuffer(file.read(), np.uint8)
-    img_bgr = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+    img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
     
-    if img_bgr is None:
+    if img is None:
         return jsonify({'error': 'Invalid image'}), 400
     
-    # Check for manual sampling points
-    manual_sampling = request.form.get('manual_sampling') == 'true'
-    sampling_points = None
-    if manual_sampling and 'sampling_points' in request.form:
-        try:
-            sampling_points = json.loads(request.form.get('sampling_points'))
-        except:
-            pass
+    # ── Step 1: Face Color Extraction ──
+    try:
+        face_result = analyze_face_color(img)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'error': f'Face analysis failed: {str(e)}'}), 500
     
-    # ── HYBRID COLOR EXTRACTION ──
-    avg_rgb, full_face_scan = get_combined_skin_color(img_bgr, sampling_points, return_scan=True)
-    brightness = np.mean(avg_rgb)
-    
-    # ── CONVERT RGB TO LAB ──
-    def rgb_to_lab(rgb_values):
-        r, g, b = rgb_values[0], rgb_values[1], rgb_values[2]
-        r = r / 255.0
-        g = g / 255.0
-        b = b / 255.0
-        r = r ** 2.2 if r > 0.04045 else r / 12.92
-        g = g ** 2.2 if g > 0.04045 else g / 12.92
-        b = b ** 2.2 if b > 0.04045 else b / 12.92
-        x = r * 0.4124564 + g * 0.3575761 + b * 0.1804375
-        y = r * 0.2126729 + g * 0.7151522 + b * 0.0721750
-        z = r * 0.0193339 + g * 0.1191920 + b * 0.9503041
-        x /= 0.95047
-        y /= 1.0
-        z /= 1.08883
-        def f(t):
-            return t ** (1/3) if t > 0.008856 else 7.787 * t + 16/116
-        L = 116 * f(y) - 16
-        a = 500 * (f(x) - f(y))
-        b_lab = 200 * (f(y) - f(z))
-        return [L, a, b_lab]
-    
-    lab_avg = rgb_to_lab(avg_rgb)
-    L_val = lab_avg[0]
-    a_val = lab_avg[1]
-    b_val = lab_avg[2]
-    
-    # ── SKIN TONE DETECTION ──
-    if L_val > 75:
-        skin_tone = "Very Fair"
-    elif L_val > 65:
-        skin_tone = "Fair"
-    elif L_val > 55:
-        skin_tone = "Light"
-    elif L_val > 45:
-        skin_tone = "Medium"
-    elif L_val > 35:
-        skin_tone = "Tan"
-    elif L_val > 25:
-        skin_tone = "Deep"
+    # ── Step 2: Foundation Matching ──
+    if foundations:
+        skin_lab = (face_result['L'], face_result['a'], face_result['b'])
+        matches = match_foundations(skin_lab, foundations, top_k=5)
     else:
-        skin_tone = "Rich Deep"
+        matches = []
     
-    print(f"📊 Skin Tone: {skin_tone} (L*={L_val:.1f})")
-    print(f"📊 RGB: R={avg_rgb[0]:.1f}, G={avg_rgb[1]:.1f}, B={avg_rgb[2]:.1f}")
+    # ── Step 3: Season Classification ──
+    try:
+        season = get_season_recommendations(face_result)
+        print(f"📊 Season classification: {season.get('season_label', 'Unknown')}")
+    except Exception as e:
+        print(f"⚠️ Season classification error: {e}")
+        season = {
+            'season_label': 'Neutral',
+            'family': 'neutral',
+            'jewelry': ['gold', 'silver'],
+            'lipstick_family': {'name': 'neutral'},
+            'blush_family': {'name': 'neutral'}
+        }
     
-    # ── UNDERTONE DETECTION ──
-    angle = math.degrees(math.atan2(b_val, a_val)) if a_val != 0 else 0
-    ratio = b_val / (a_val + 0.01) if a_val != 0 else 0
-    
-    print(f"📊 Undertone: a*={a_val:.1f}, b*={b_val:.1f}, angle={angle:.1f}°")
-    
-    if angle > 45 and ratio > 1.5:
-        undertone = "Warm Golden"
-    elif angle > 30 and ratio > 1.2:
-        undertone = "Warm"
-    elif angle > 15 and ratio > 0.8:
-        undertone = "Warm Peach"
-    elif angle > -15 and ratio > -0.5:
-        undertone = "Neutral"
-    elif angle > -30 and ratio < -0.5:
-        undertone = "Cool Pink"
-    elif angle > -45 and ratio < -0.8:
-        undertone = "Cool Rose"
-    elif a_val > 0 and b_val < 10 and a_val > b_val:
-        undertone = "Olive"
-    else:
-        undertone = "Neutral"
-    
-    print(f"🎨 Detected Undertone: {undertone}")
-    
-    # ── MAP TO SIMPLIFIED CATEGORIES ──
-    if "Warm" in undertone:
-        simple_undertone = "Warm"
-    elif "Cool" in undertone:
-        simple_undertone = "Cool"
-    elif "Olive" in undertone:
-        simple_undertone = "Olive"
-    else:
-        simple_undertone = "Neutral"
-    
-    if skin_tone in ["Very Fair", "Fair", "Light"]:
-        simple_skin = "Light"
-    elif skin_tone in ["Medium", "Tan"]:
-        simple_skin = "Medium"
-    else:
-        simple_skin = "Deep"
-    
-    print(f"✅ Simple Mapping: {simple_skin} + {simple_undertone}")
-    
-    # ── GET RECOMMENDATIONS ──
-    from recommender import get_recommendations
-    foundations = get_recommendations(simple_skin, simple_undertone)
-    color_recs = get_minicpm_recommendations(simple_skin, simple_undertone)
-    
-    # ── RESPONSE ──
-    result = {
-        'success': True,
-        'analysis': {
-            'skin_tone': skin_tone,
-            'skin_tone_simple': simple_skin,
-            'undertone': undertone,
-            'undertone_simple': simple_undertone,
-            'ita': 30,
-            'lab': {'L': float(L_val), 'a': float(a_val), 'b': float(b_val)},
-            'full_face_scan': full_face_scan
-        },
-        'recommendations': {
-            'foundations': foundations.get('foundations', []) if isinstance(foundations, dict) else foundations
-        },
-        'color_recommendations': color_recs,
-        'source': 'minicpm'
+    # ── Step 4: Generate AI Recommendations ──
+    ai_used = False
+    recommendations_text = "Analysis complete. See your skin profile and foundation matches below."
+    structured_recommendations = {}
+    season_details = {
+        'jewelry': season.get('jewelry', ['gold', 'silver']),
+        'lipstick': season.get('lipstick_family', {}).get('name', 'neutral'),
+        'blush': season.get('blush_family', {}).get('name', 'neutral'),
+        'best_colors': {},
+        'worst_colors': []
     }
     
-    print(f"✅ Result: {simple_skin} + {simple_undertone}")
-    return jsonify(result)
+    if get_ai_recommendations:
+        try:
+            # Prepare season data for AI
+            season_data_for_ai = {
+                'season_key': season.get('season_key'),
+                'season_label': season.get('season_label', 'Neutral'),
+                'family': season.get('family', 'neutral'),
+                'jewelry': season.get('jewelry', ['gold', 'silver']),
+                'lipstick_family': season.get('lipstick_family', {}),
+                'blush_family': season.get('blush_family', {}),
+                'raw_data': season.get('raw_data', {})
+}
+            
+            # Call the AI recommendations
+            ai_result = get_ai_recommendations(
+                face_result, 
+                matches, 
+                season_data_for_ai
+            )
+            
+            # Extract the results
+            recommendations_text = ai_result.get('summary', 'Analysis complete.')
+            structured_recommendations = ai_result.get('structured', {})
+            
+            # Extract season details from structured data
+            if 'season' in structured_recommendations:
+                season_details = structured_recommendations['season']
+            
+            ai_used = True
+            print("✅ AI recommendations generated successfully")
+            
+        except Exception as e:
+            print(f"⚠️ AI recommendation error: {e}")
+            import traceback
+            traceback.print_exc()
+            # Fallback to basic response
+            recommendations_text = f"🌟 Based on your skin analysis, you have {face_result.get('depth', 'medium')} skin with {face_result.get('undertone', 'neutral')} undertones.\n\n💄 Your best foundation match is {matches[0]['brand'] + ' - ' + matches[0]['shade'] if matches else 'None found'}.\n\n🎨 Your color season is {season.get('season_label', 'Neutral')}."
+            ai_used = False
+    
+    # ── Step 5: Build Response ──
+    response = {
+        'success': True,
+        'method': 'colorimetry_v2',
+        'ai_used': ai_used,
+        'ai_source': 'groq' if ai_used else 'fallback',
+        'analysis': {
+            'depth': face_result.get('depth', 'medium'),
+            'undertone': face_result.get('undertone', 'neutral'),
+            'clarity': face_result.get('clarity', 'medium'),
+            'lab': {
+                'L': face_result.get('L', 50),
+                'a': face_result.get('a', 0),
+                'b': face_result.get('b', 0)
+            },
+            'ita_degrees': face_result.get('ita_degrees', 0),
+            'ita_bucket': face_result.get('ita_bucket', 'unknown'),
+            'confidence': face_result.get('confidence', 0.5),
+            'per_region_values': face_result.get('per_region_values', {})
+        },
+        'foundations': matches,
+        'season': {
+            'label': season.get('season_label', 'Neutral'),
+            'family': season.get('family', 'neutral'),
+            'jewelry': season_details.get('jewelry', season.get('jewelry', ['gold', 'silver'])),
+            'lipstick': season_details.get('lipstick', season.get('lipstick_family', {}).get('name', 'neutral')),
+            'blush': season_details.get('blush', season.get('blush_family', {}).get('name', 'neutral')),
+            'best_colors': season_details.get('best_colors', {}),
+            'worst_colors': season_details.get('worst_colors', [])
+        },
+        'recommendations': recommendations_text,
+        'structured_recommendations': structured_recommendations
+    }
+    
+    return jsonify(response)
+
+
+@app.route('/api/analyze-batch', methods=['POST'])
+def analyze_batch():
+    """Analyze multiple images (for testing)"""
+    if 'images' not in request.files:
+        return jsonify({'error': 'No images provided'}), 400
+    
+    files = request.files.getlist('images')
+    results = []
+    
+    for file in files:
+        img_array = np.frombuffer(file.read(), np.uint8)
+        img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+        
+        if img is None:
+            results.append({'filename': file.filename, 'error': 'Invalid image'})
+            continue
+        
+        try:
+            face_result = analyze_face_color(img)
+            skin_lab = (face_result['L'], face_result['a'], face_result['b'])
+            matches = match_foundations(skin_lab, foundations, top_k=3) if foundations else []
+            season = get_season_recommendations(face_result)
+            
+            results.append({
+                'filename': file.filename,
+                'depth': face_result['depth'],
+                'undertone': face_result['undertone'],
+                'season': season.get('season_label', 'Unknown'),
+                'top_match': matches[0] if matches else None
+            })
+        except Exception as e:
+            results.append({
+                'filename': file.filename,
+                'error': str(e)
+            })
+    
+    return jsonify({'success': True, 'results': results})
 
 
 # ──────────────────────────────────────────────────────────────
-# ERROR HELPER
+# ERROR HANDLING
 # ──────────────────────────────────────────────────────────────
-def get_user_friendly_error(error_msg):
-    error_lower = error_msg.lower()
-    if 'dark' in error_lower:
-        return {'title': '🌙 Too Dark', 'message': 'Image too dark. Use better lighting.', 'tip': 'Natural daylight works best!'}
-    elif 'overexposed' in error_lower or 'bright' in error_lower:
-        return {'title': '☀️ Too Bright', 'message': 'Image overexposed.', 'tip': 'Avoid direct sunlight.'}
-    elif 'small' in error_lower:
-        return {'title': '📷 Face Too Small', 'message': 'Face too small. Move closer.', 'tip': 'Fill at least 1/4 of frame.'}
-    elif 'lighting' in error_lower or 'uneven' in error_lower:
-        return {'title': '💡 Uneven Lighting', 'message': 'Lighting is uneven.', 'tip': 'Face the light source directly.'}
-    else:
-        return {'title': '⚠️ Quality Issue', 'message': error_msg, 'tip': 'Retake with better lighting.'}
+
+@app.errorhandler(404)
+def not_found(e):
+    return jsonify({'error': 'Endpoint not found'}), 404
+
+@app.errorhandler(500)
+def server_error(e):
+    return jsonify({'error': 'Internal server error'}), 500
 
 
 # ──────────────────────────────────────────────────────────────
 # RUN THE APP
 # ──────────────────────────────────────────────────────────────
+
 if __name__ == '__main__':
-    print("\n🚀 ShadeSense AI Backend Starting...")
-    print(f"🤖 AI Model loaded: {model is not None}")
-    print("📍 POST /api/analyze")
-    print("📍 POST /api/tryon")
-    print("📍 GET  /api/health")
+    print("\n" + "=" * 60)
+    print("📍 Endpoints:")
+    print("   POST /api/analyze")
+    print("   POST /api/tryon")
+    print("   GET  /api/health")
+    print("   POST /api/analyze-batch (testing)")
+    print("=" * 60)
+    print("\n🚀 Server starting on http://0.0.0.0:5001\n")
     app.run(debug=False, host='0.0.0.0', port=5001)
