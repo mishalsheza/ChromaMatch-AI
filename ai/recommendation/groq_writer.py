@@ -341,3 +341,195 @@ def get_ai_recommendations(
             }
         }
     }
+
+# ══════════════════════════════════════════════════════════════
+# RANKED-AWARE PROMPT — additive, does not replace
+# build_enhanced_ai_prompt() or get_groq_recommendations().
+#
+# Paste this into groq_writer.py. It adds a new entry point,
+# get_ai_recommendations_ranked(), that takes the output of
+# season.get_ranked_season_recommendations() and gives Groq an
+# actual judgment call to make when two seasons are close, instead
+# of always handing it one pre-decided "winner" to narrate.
+# ══════════════════════════════════════════════════════════════
+
+def build_ranked_ai_prompt(
+    face_result: Dict[str, Any],
+    foundation_matches: List[Dict[str, Any]],
+    ranked_seasons: Dict[str, Any],
+    seasons_full_data: Dict[str, Dict[str, Any]],
+) -> str:
+    """
+    Build a prompt that gives Groq the top 2-3 season candidates with
+    their scores, and asks it to decide how to handle closeness —
+    rather than being handed a single winner to describe.
+
+    ranked_seasons: output of season.get_ranked_season_recommendations()
+    seasons_full_data: the full `seasons` dict from season_color_reference.json,
+        so Groq can see each candidate's actual lipstick/blush/jewelry data,
+        not just its name and score.
+    """
+    depth = face_result.get('depth', 'medium')
+    undertone = face_result.get('undertone', 'neutral')
+    clarity = face_result.get('clarity', 'medium')
+    confidence = face_result.get('confidence', 0.8)
+    ita_degrees = face_result.get('ita_degrees', 0)
+
+    top = ranked_seasons["top_seasons"]
+    is_close = ranked_seasons["is_close_call"]
+    margin_pct = ranked_seasons["margin_pct"]
+
+    top_foundations = foundation_matches[:3] if foundation_matches else []
+    foundation_text = "\n".join([
+        f"  • {match['brand']} - {match['shade']} (ΔE: {match.get('distance', 0):.2f})"
+        for match in top_foundations
+    ]) if top_foundations else "  • No matches found"
+
+    # Build a compact data block for each candidate season so Groq can
+    # actually compare their lipstick/blush/jewelry options, not just names.
+    candidate_blocks = []
+    for rank, candidate in enumerate(top, start=1):
+        key = candidate["season_key"]
+        full = seasons_full_data.get(key, {})
+        lipstick_names = ", ".join(item["name"] for item in full.get("lipstick", {}).get("best", []))
+        blush_names = ", ".join(item["name"] for item in full.get("blush", {}).get("best", []))
+        jewelry_names = ", ".join(full.get("jewelry", {}).get("best", []))
+
+        candidate_blocks.append(f"""
+Candidate #{rank}: {candidate['season_label']} (match score: {candidate['score_pct']}%)
+  Lipstick options: {lipstick_names}
+  Blush options: {blush_names}
+  Jewelry: {jewelry_names}""")
+
+    candidates_text = "\n".join(candidate_blocks)
+
+    closeness_instruction = (
+        f"""
+IMPORTANT — this is a CLOSE CALL. The top two candidates are only {margin_pct:.1f} 
+percentage points apart, meaning the detected skin profile sits near the boundary 
+between them. Do NOT present the top candidate as a confident, singular answer. 
+Instead:
+- Acknowledge the profile shows characteristics of both {top[0]['season_label']} and 
+  {top[1]['season_label']}
+- Recommend colors/shades that OVERLAP between the two candidates' lipstick/blush 
+  lists where possible (compare the lists above)
+- For anything that doesn't overlap, mention it as "also worth trying" from the 
+  second candidate, rather than omitting it or presenting only the top pick
+- Briefly explain in plain language why the call is close (e.g. borderline contrast 
+  or clarity reading) without getting technical about ITA/LAB values
+"""
+        if is_close else
+        f"""
+The top candidate ({top[0]['season_label']}) scored clearly ahead of the next option 
+by {margin_pct:.1f} percentage points — this is a confident classification. Present 
+it as your primary recommendation without hedging.
+"""
+    )
+
+    prompt = f"""
+You are a color analyst and beauty expert. Create a structured recommendation card for a client with:
+
+## Skin Profile
+- Depth: {depth}
+- Undertone: {undertone}
+- Clarity: {clarity}
+- ITA Value: {ita_degrees:.1f}°
+- Confidence: {confidence:.0%}
+
+## Best Foundation Matches (Delta-E 2000)
+{foundation_text}
+
+## Season Candidates (ranked by fit score, not a single fixed answer)
+{candidates_text}
+
+## Your task
+{closeness_instruction}
+
+Use ONLY the shade names, hex-adjacent names, and jewelry listed in the candidate 
+data above — do not invent colors or brands not present in this data. Real brand 
+names are only allowed in the Foundation Match section.
+
+## OUTPUT FORMAT
+Respond in Markdown with these sections, ONE emoji per header maximum:
+
+### 🌟 Your Skin & Season
+2-3 sentences. If this was a close call, say so plainly and name both candidates.
+
+### 💄 Foundation Match
+Bullet list of top foundation matches with brief reasoning.
+
+### 👄 Lipstick Shades
+Bullet list. If close call, prioritize overlapping shades, then list "also worth 
+trying" options from the second candidate.
+
+### 🌸 Blush Shades
+Same approach as lipstick.
+
+### 💍 Jewelry
+Bullet list, bolded metals.
+
+Keep it professional, warm, and concise. This is a reference card, not a chat message.
+"""
+    return prompt
+
+
+def get_ai_recommendations_ranked(
+    face_result: Dict[str, Any],
+    foundation_matches: List[Dict[str, Any]],
+    ranked_seasons: Dict[str, Any],
+    seasons_full_data: Dict[str, Dict[str, Any]],
+) -> Dict[str, Any]:
+    """
+    New entry point using ranked season scoring instead of a single
+    pre-decided winner. Falls back to the template response (reusing
+    the existing _generate_template_response) if Groq is unavailable.
+    """
+    if not GROQ_API_KEY:
+        print("⚠️ GROQ_API_KEY not set. Using template fallback.")
+        winner = ranked_seasons["top_seasons"][0]
+        fake_season_data = {"season_label": winner["season_label"]}
+        return {
+            "summary": _generate_template_response(face_result, foundation_matches, fake_season_data),
+            "ranked_seasons": ranked_seasons,
+        }
+
+    try:
+        client = Groq(api_key=GROQ_API_KEY)
+        prompt = build_ranked_ai_prompt(face_result, foundation_matches, ranked_seasons, seasons_full_data)
+
+        print(f"🤖 Calling Groq API (ranked, close_call={ranked_seasons['is_close_call']})...")
+
+        response = client.chat.completions.create(
+            model='openai/gpt-oss-120b',
+            messages=[
+                {
+                    "role": "system",
+                    "content": """You are a professional color analyst and beauty expert.
+Use ONE emoji per section header maximum. Respond in clean Markdown. Bold every 
+color/shade/product name. Use ONLY shade names and colors given in the provided 
+data — never invent brand names outside the Foundation Match section. Be honest 
+about uncertainty when told a classification is a close call — do not paper over 
+it with false confidence. Be professional and concise, not chatty."""
+                },
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.3,
+            max_tokens=1200,
+            stop=["<think>", "Thinking:", "Analysis:"]
+        )
+
+        result = response.choices[0].message.content
+        print("✅ Groq API response received (ranked)")
+        return {
+            "summary": result,
+            "ranked_seasons": ranked_seasons,
+        }
+
+    except Exception as e:
+        print(f"⚠️ Groq API error (ranked): {e}")
+        winner = ranked_seasons["top_seasons"][0]
+        fake_season_data = {"season_label": winner["season_label"]}
+        return {
+            "summary": _generate_template_response(face_result, foundation_matches, fake_season_data),
+            "ranked_seasons": ranked_seasons,
+        }
