@@ -169,7 +169,7 @@
     display: grid;
     grid-template-columns: 1fr 1.2fr;
     gap: 24px;
-    margin-bottom: 20px;
+    margin-bottom: 28px;
   }
   .results-left { display: flex; flex-direction: column; gap: 16px; }
   .results-right { display: flex; flex-direction: column; gap: 16px; }
@@ -286,7 +286,7 @@
     border: 1px solid var(--border);
     border-radius: 20px;
     padding: 20px 24px;
-    margin-bottom: 20px;
+    margin-bottom: 28px;
   }
   .ita-title {
     font-size: 0.7rem;
@@ -339,7 +339,7 @@
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 14px 20px;
-    margin-bottom: 20px;
+    margin-bottom: 28px;
     font-size: 0.9rem;
     color: var(--text-light);
     line-height: 1.6;
@@ -349,30 +349,23 @@
   }
 
   .recommendations-card {
-    background: var(--surface);
+    background: linear-gradient(135deg, var(--surface2), var(--surface));
+    border: 1px solid var(--rose-border);
     border-radius: 20px;
-    padding: 20px;
-    border: 1px solid var(--border);
+    padding: 28px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.04);
-    margin-bottom: 20px;
+    margin-bottom: 32px;
   }
   .recommendations-card h3 {
-    font-size: 0.8rem;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 16px;
+    color: var(--rose-gold-dark);
   }
-  .recommendations-text {
-    color: var(--text-light);
-    font-size: 0.9rem;
-    line-height: 1.8;
-    white-space: pre-wrap;
+  .recommendations-text p:first-child {
+    font-size: 0.95rem;
   }
-.palette-card {
+  .palette-card {
     background: var(--surface);
     border-radius: 20px;
-    padding: 20px;
+    padding: 24px;
     border: 1px solid var(--border);
     box-shadow: 0 4px 20px rgba(0,0,0,0.04);
     margin-bottom: 20px;
@@ -420,6 +413,55 @@
     border-color: rgba(180,60,60,0.1);
     color: #A04040;
   }
+  .color-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .color-section:first-of-type {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+  .color-section-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .color-swatch-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .color-swatch-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface2);
+    padding: 4px 12px 4px 4px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    font-size: 0.75rem;
+  }
+  .color-swatch-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid rgba(0,0,0,0.08);
+    flex-shrink: 0;
+  }
+  .color-swatch-name {
+    color: var(--text);
+  }
+  .color-swatch-hex {
+    color: var(--text-light);
+    font-size: 0.65rem;
+    font-family: monospace;
+  }
+  .color-swatch-avoid .color-swatch-name {
+    color: #A04040;
+  }
 
   .loading-overlay {
     display: none; flex-direction: column; align-items: center; justify-content: center;
@@ -431,6 +473,34 @@
 
   .error-box { display: none; align-items: center; gap: 10px; background: rgba(232,130,130,0.08); border: 1px solid rgba(232,130,130,0.2); border-radius: 12px; padding: 14px; margin-top: 20px; color: #D47A7A; font-size: 0.85rem; }
   .error-box.show { display: flex; }
+
+  .connection-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.7rem;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-left: 12px;
+  }
+  .connection-status.online {
+    background: rgba(46, 204, 113, 0.12);
+    color: #27AE60;
+    border: 1px solid rgba(46, 204, 113, 0.2);
+  }
+  .connection-status.offline {
+    background: rgba(232, 130, 130, 0.12);
+    color: #D47A7A;
+    border: 1px solid rgba(232, 130, 130, 0.2);
+  }
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .connection-status.online .status-dot { background: #27AE60; }
+  .connection-status.offline .status-dot { background: #D47A7A; }
 
   footer { text-align: center; padding: 30px; color: var(--text-light); font-size: 0.7rem; border-top: 1px solid var(--border); }
 
@@ -509,56 +579,6 @@
 
   .restart-btn { margin-top: 8px; width: 100%; justify-content: center; }
 
-  .color-section {
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
-  }
-  .color-section:first-of-type {
-    margin-top: 0;
-    padding-top: 0;
-    border-top: none;
-  }
-  .color-section-title {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text);
-    margin-bottom: 8px;
-  }
-  .color-swatch-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .color-swatch-item {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: var(--surface2);
-    padding: 4px 12px 4px 4px;
-    border-radius: 20px;
-    border: 1px solid var(--border);
-    font-size: 0.75rem;
-  }
-  .color-swatch-dot {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    border: 2px solid rgba(0,0,0,0.08);
-    flex-shrink: 0;
-  }
-  .color-swatch-name {
-    color: var(--text);
-  }
-  .color-swatch-hex {
-    color: var(--text-light);
-    font-size: 0.65rem;
-    font-family: monospace;
-  }
-  .color-swatch-avoid .color-swatch-name {
-    color: #A04040;
-  }
-
   @media (max-width: 768px) {
     .results-grid { grid-template-columns: 1fr; }
     h1 { font-size: 2rem; }
@@ -573,6 +593,10 @@
     <div class="step" id="step1"><div class="dot"></div><span class="step-text">Upload</span></div>
     <span style="color:var(--border)">→</span>
     <div class="step" id="step2"><div class="dot"></div><span class="step-text">Results</span></div>
+  </div>
+  <div class="connection-status offline" id="connection-status">
+    <span class="status-dot"></span>
+    <span id="status-text">Connecting...</span>
   </div>
 </header>
 
@@ -657,7 +681,13 @@
       <strong id="undertone-title">—</strong>
       <span id="undertone-text">—</span>
     </div>
-<div class="palette-card" id="palette-card">
+
+     <div class="recommendations-card" id="recommendations-card">
+      <h3>💬 Your Personal Read</h3>
+      <div class="recommendations-text" id="recommendations-text">Loading...</div>
+    </div>
+
+    <div class="palette-card" id="palette-card">
       <h3>🎨 Your Perfect Color Palette</h3>
       <div id="color-palette-content">
         <div style="color:var(--text-light);text-align:center;padding:10px;">Loading...</div>
@@ -695,17 +725,65 @@
 
 <script>
 // ============================================
+// CONFIGURATION
+// ============================================
+const API_BASE_URL = 'http://localhost:5001';
+const API_ANALYZE_URL = API_BASE_URL + '/api/analyze';
+const API_TRYON_URL = API_BASE_URL + '/api/tryon';
+const API_HEALTH_URL = API_BASE_URL + '/api/health';
+
+// ============================================
 // STATE
 // ============================================
 let currentImageFile = null;
 let currentIntensity = 0.7;
 let uploadedImageUrl = null;
 let currentShade = null;
+let currentAnalysisData = null;
+let isBackendOnline = false;
 
+// ============================================
+// CONNECTION CHECK
+// ============================================
+async function checkBackendConnection() {
+  const statusEl = document.getElementById('connection-status');
+  const statusText = document.getElementById('status-text');
+  
+  try {
+    const response = await fetch(API_HEALTH_URL, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      isBackendOnline = true;
+      statusEl.className = 'connection-status online';
+      statusText.textContent = '🟢 Online';
+      console.log('✅ Backend connected:', data);
+    } else {
+      throw new Error('Health check failed');
+    }
+  } catch (error) {
+    isBackendOnline = false;
+    statusEl.className = 'connection-status offline';
+    statusText.textContent = '🔴 Offline';
+    console.warn('⚠️ Backend not reachable:', error.message);
+  }
+}
+
+// Check connection on load and every 10 seconds
+checkBackendConnection();
+setInterval(checkBackendConnection, 10000);
+
+// ============================================
+// NAVIGATION
+// ============================================
 function resetApp() {
   currentImageFile = null;
   uploadedImageUrl = null;
   currentShade = null;
+  currentAnalysisData = null;
   document.getElementById('file-input').value = '';
   closeTryOn();
   showPage(1);
@@ -730,13 +808,16 @@ function showPage(n) {
 // ============================================
 function handleFile(file) {
   if (!file || !file.type.startsWith('image/')) { 
-    const errorDiv = document.getElementById('p1-error');
-    const errorMsg = document.getElementById('p1-error-msg');
-    if(errorMsg) errorMsg.textContent = 'Please select an image file';
-    if(errorDiv) errorDiv.classList.add('show');
-    setTimeout(() => { if(errorDiv) errorDiv.classList.remove('show'); }, 3000);
+    showUploadError('Please select an image file');
     return; 
   }
+  
+  // Check if backend is online before proceeding
+  if (!isBackendOnline) {
+    showUploadError('⚠️ Backend server is not responding. Please make sure the server is running on port 5001.');
+    return;
+  }
+  
   currentImageFile = file;
   uploadedImageUrl = URL.createObjectURL(file);
   
@@ -748,6 +829,14 @@ function handleFile(file) {
   analyzeWithAI();
 }
 
+function showUploadError(message) {
+  const errorDiv = document.getElementById('p1-error');
+  const errorMsg = document.getElementById('p1-error-msg');
+  if(errorMsg) errorMsg.textContent = message;
+  if(errorDiv) errorDiv.classList.add('show');
+  setTimeout(() => { if(errorDiv) errorDiv.classList.remove('show'); }, 5000);
+}
+
 // ============================================
 // API CALL
 // ============================================
@@ -757,16 +846,30 @@ async function analyzeWithAI() {
     return;
   }
   
+  // Double-check backend is online
+  if (!isBackendOnline) {
+    await checkBackendConnection();
+    if (!isBackendOnline) {
+      showErrorDialog('⚠️ Backend server is not responding. Please make sure the server is running on port 5001.');
+      return;
+    }
+  }
+  
   const formData = new FormData();
   formData.append('image', currentImageFile);
 
   try {
-    const response = await fetch('http://localhost:5001/api/analyze', { 
+    console.log('📤 Sending request to:', API_ANALYZE_URL);
+    
+    const response = await fetch(API_ANALYZE_URL, { 
       method: 'POST', 
-      body: formData 
+      body: formData,
+      // Add timeout
+      signal: AbortSignal.timeout(30000) // 30 second timeout
     });
     
     const data = await response.json();
+    currentAnalysisData = data;
     
     if (response.ok && data.success) {
       displayResults(data);
@@ -776,313 +879,33 @@ async function analyzeWithAI() {
       showErrorDialog(errorMsg);
     }
   } catch (error) {
-    console.error('API Error:', error);
-    showErrorDialog('Could not connect to the AI server. Make sure backend is running on port 5001.');
-  }
-}
-
-// ============================================
-// MARKDOWN RENDERER
-// ============================================
-function renderMarkdown(text) {
-  if (!text) return 'No recommendations available.';
-  
-  // Convert Markdown to HTML
-  let html = text
-    // Headers
-    .replace(/^### (.*$)/gm, '<h3>$1</h3>')
-    .replace(/^## (.*$)/gm, '<h2>$1</h2>')
-    .replace(/^# (.*$)/gm, '<h1>$1</h1>')
-    // Bold
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    // Italic
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    // Bullet lists
-    .replace(/^• (.*$)/gm, '<li>$1</li>')
-    .replace(/^\- (.*$)/gm, '<li>$1</li>')
-    // Wrap lists - improved regex
-    .replace(/((?:<li>.*<\/li>\s*)+)/g, '<ul>$1</ul>')
-    // Line breaks
-    .replace(/\n/g, '<br>');
-  
-  return html;
-}
-
-// ============================================
-// DISPLAY RESULTS
-// ============================================
-function displayResults(data) {
-  const a = data.analysis || {};
-  const season = data.season || {};
-  const structuredRecs = data.structured_recommendations || {};
-  const foundations = structuredRecs.foundations || data.foundations || [];
-  // Skin badge
-  const skinTone = a.depth || '—';
-  const undertone = a.undertone || '—';
-  const seasonLabel = season.label || '—';
-  const confidence = a.confidence ? Math.round(a.confidence * 100) + '%' : '—';
-  
-  document.getElementById('result-skin-tone').innerHTML = '🌸 <b>' + skinTone + '</b> Skin Tone';
-  document.getElementById('result-undertone').innerHTML = '💄 <b>' + undertone + '</b> Undertone';
-  document.getElementById('result-season').textContent = '🍂 ' + seasonLabel;
-  document.getElementById('result-confidence').textContent = '🎯 Confidence: ' + confidence;
-  document.getElementById('result-summary').innerHTML = `<b>${skinTone}</b> skin with <b>${undertone}</b> undertone — ${seasonLabel}`;
-  
-  // Undertone description
-  const undertoneDesc = undertone === 'Warm' 
-    ? '🌸 Golden and peachy hues — bronze, caramel, and earth tones suit you beautifully.'
-    : undertone === 'Cool'
-    ? '💖 Pink and rosy hues — jewel tones, berries, and blue-based neutrals suit you.'
-    : undertone === 'Olive'
-    ? '🫒 Earthy, jewel-toned colors with a greenish cast suit you beautifully.'
-    : '✨ Balanced — you can wear both warm and cool colors beautifully.';
-  
-  document.getElementById('undertone-title').textContent = undertone + ' Undertone — ';
-  document.getElementById('undertone-text').textContent = undertoneDesc;
-  
-  // ITA
-  const ita = a.ita_degrees || 30;
-  const pct = Math.max(2, Math.min(98, ((ita + 90) / 180) * 100));
-  const itaMarker = document.getElementById('ita-marker');
-  const itaLabel = document.getElementById('ita-label');
-  if(itaMarker) itaMarker.style.left = pct + '%';
-  if(itaLabel) itaLabel.textContent = `${skinTone} · ITA ${ita.toFixed(1)}°`;
-  
-  // ── FOUNDATION MATCHES ──
-  const foundationsBox = document.getElementById('foundations-box');
-  if (foundationsBox) {
-    if (foundations.length > 0) {
-      foundationsBox.innerHTML = foundations.map(f => `
-        <div class="foundation-item">
-          <div class="foundation-info">
-            <div class="foundation-brand">${f.brand || 'Brand'}</div>
-            <div class="foundation-product">${f.product || 'Product'}</div>
-          </div>
-          <div class="foundation-actions">
-            <span class="foundation-shade">${f.shade || 'Shade'}</span>
-          </div>
-        </div>
-      `).join('');
+    console.error('❌ API Error:', error);
+    
+    if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+      showErrorDialog('⏱️ Request timed out. The server took too long to respond. Please try again.');
+    } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      showErrorDialog('🔌 Cannot connect to the AI server. Make sure the backend is running on port 5001.');
+      // Update connection status
+      isBackendOnline = false;
+      document.getElementById('connection-status').className = 'connection-status offline';
+      document.getElementById('status-text').textContent = '🔴 Offline';
     } else {
-      foundationsBox.innerHTML = `<div style="color:var(--text-light);text-align:center;padding:20px;">No foundation matches found. Try a different image.</div>`;
+      showErrorDialog('❌ Error: ' + error.message);
     }
-  }
-  
-  // ── COLOR PALETTE ──
-  const paletteContent = document.getElementById('color-palette-content');
-  if (paletteContent) {
-    // Extract data from structured recommendations
-    const lipstick = structuredRecs.season?.lipstick || [];
-    const blush = structuredRecs.season?.blush || [];
-    const jewelry = structuredRecs.season?.jewelry || season.jewelry || ['Gold', 'Silver'];
-    const bestColors = structuredRecs.season?.best_colors || {};
-    const worstColors = structuredRecs.season?.worst_colors || [];
-    const dressOccasions = structuredRecs.recommendations?.dress_occasions || {};
-    const eyeMakeup = structuredRecs.recommendations?.eye_makeup || {};
-    const specialNotes = structuredRecs.recommendations?.special_notes || {};
-    
-    let paletteHTML = '';
-    
-    // Lipstick shades with swatches
-    if (lipstick && lipstick.length > 0) {
-      paletteHTML += `
-        <div class="color-section">
-          <div class="color-section-title">💄 Lipstick Shades</div>
-          <div class="color-swatch-grid">
-            ${lipstick.map(l => `
-              <div class="color-swatch-item">
-                <div class="color-swatch-dot" style="background:${l.hex || getColorHex(l.name) || '#CC8899'}"></div>
-                <span class="color-swatch-name">${l.name || 'Shade'}</span>
-                <span class="color-swatch-hex">${l.hex || ''}</span>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    }
-    
-    // Blush shades with swatches
-    if (blush && blush.length > 0) {
-      paletteHTML += `
-        <div class="color-section">
-          <div class="color-section-title">🌸 Blush Shades</div>
-          <div class="color-swatch-grid">
-            ${blush.map(b => `
-              <div class="color-swatch-item">
-                <div class="color-swatch-dot" style="background:${b.hex || getColorHex(b.name) || '#F4A261'}"></div>
-                <span class="color-swatch-name">${b.name || 'Shade'}</span>
-                <span class="color-swatch-hex">${b.hex || ''}</span>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    }
-    
-    // Jewelry
-    if (jewelry && jewelry.length > 0) {
-      paletteHTML += `
-        <div class="color-section">
-          <div class="color-section-title">💍 Jewelry</div>
-          <div class="palette-row">
-            ${jewelry.map(j => `
-              <span class="palette-tag">
-                <span class="palette-dot" style="background:${getMetalColor(j)}"></span>
-                ${j}
-              </span>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    }
-    
-    // Best colors
-    if (bestColors.primary && bestColors.primary.length > 0) {
-      paletteHTML += `
-        <div class="color-section">
-          <div class="color-section-title">👗 Best Primary Colors</div>
-          <div class="palette-row">
-            ${bestColors.primary.map(c => `
-              <span class="palette-tag">
-                <span class="palette-dot" style="background:${getColorHex(c)}"></span>
-                ${c}
-              </span>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    }
-    
-    if (bestColors.secondary && bestColors.secondary.length > 0) {
-      paletteHTML += `
-        <div class="color-section">
-          <div class="color-section-title">👗 Best Secondary Colors</div>
-          <div class="palette-row">
-            ${bestColors.secondary.map(c => `
-              <span class="palette-tag">
-                <span class="palette-dot" style="background:${getColorHex(c)}"></span>
-                ${c}
-              </span>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    }
-    
-    // Worst colors
-    if (worstColors && worstColors.length > 0) {
-      paletteHTML += `
-        <div class="color-section">
-          <div class="color-section-title">⚠️ Colors to Avoid</div>
-          <div class="palette-row">
-            ${worstColors.map(c => `
-              <span class="palette-tag palette-tag-avoid">
-                <span class="palette-dot" style="background:${getColorHex(c)}"></span>
-                ${c}
-              </span>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    }
-    
-    // Eye makeup
-    if (eyeMakeup.best && eyeMakeup.best.length > 0) {
-      paletteHTML += `
-        <div class="color-section">
-          <div class="color-section-title">👁️ Eye Makeup</div>
-          <div class="palette-row">
-            <span class="palette-label">Best:</span>
-            ${eyeMakeup.best.map(c => `
-              <span class="palette-tag">
-                <span class="palette-dot" style="background:${getColorHex(c)}"></span>
-                ${c}
-              </span>
-            `).join('')}
-          </div>
-          ${eyeMakeup.avoid && eyeMakeup.avoid.length > 0 ? `
-            <div class="palette-row">
-              <span class="palette-label">Avoid:</span>
-              ${eyeMakeup.avoid.map(c => `
-                <span class="palette-tag palette-tag-avoid">
-                  <span class="palette-dot" style="background:${getColorHex(c)}"></span>
-                  ${c}
-                </span>
-              `).join('')}
-            </div>
-          ` : ''}
-        </div>
-      `;
-    }
-    
-    // Dress occasions
-    if (Object.keys(dressOccasions).length > 0) {
-      paletteHTML += `
-        <div class="color-section">
-          <div class="color-section-title">👚 Outfit Ideas by Occasion</div>
-          ${Object.entries(dressOccasions).map(([occasion, items]) => {
-            const occasionName = occasion
-              .replace(/_/g, ' ')
-              .replace(/\b\w/g, l => l.toUpperCase());
-            return `
-              <div class="palette-row">
-                <span class="palette-label">${occasionName}:</span>
-                ${items.map(item => `
-                  <span class="palette-tag">
-                    <span class="palette-dot" style="background:${getColorHex(item)}"></span>
-                    ${item}
-                  </span>
-                `).join('')}
-              </div>
-            `;
-          }).join('')}
-        </div>
-      `;
-    }
-    
-    // Special notes
-    if (specialNotes && Object.keys(specialNotes).length > 0) {
-      const notes = [];
-      if (specialNotes.pigmented_lips) notes.push(`💋 ${specialNotes.pigmented_lips}`);
-      if (specialNotes.hyperpigmentation) notes.push(`✨ ${specialNotes.hyperpigmentation}`);
-      if (specialNotes.olive_skin) notes.push(`🫒 ${specialNotes.olive_skin}`);
-      
-      if (notes.length > 0) {
-        paletteHTML += `
-          <div class="color-section">
-            <div class="color-section-title">✨ Special Notes</div>
-            <ul style="list-style:none;padding:0;margin:0;">
-              ${notes.map(n => `<li style="padding:4px 0;color:var(--text-light);font-size:0.85rem;">${n}</li>`).join('')}
-            </ul>
-          </div>
-        `;
-      }
-    }
-    
-    paletteContent.innerHTML = paletteHTML || '<div style="color:var(--text-light);text-align:center;padding:10px;">No palette data available.</div>';
   }
 }
 
-// ── HELPER COLOR FUNCTIONS ──
-function getMetalColor(metal) {
-  if(!metal) return '#D4AF37';
-  const m = metal.toLowerCase();
-  if(m.includes('rose gold')) return '#E8A2A2';
-  if(m.includes('platinum') || m.includes('silver')) return '#E5E4E2';
-  if(m.includes('copper') || m.includes('bronze')) return '#B87333';
-  if(m.includes('brass')) return '#B5A642';
-  if(m.includes('gold')) return '#D4AF37';
-  return '#D4AF37';
-}
-
+// ============================================
+// ENHANCED COLOR MAP
+// ============================================
 function getColorHex(color) {
   if (!color) return '#CCCCCC';
   
   const c = color.toLowerCase().trim();
   
-  // Extended color map with specific shades
+  // Comprehensive color map
   const colorMap = {
-    // Reds
+    // Reds & Pinks
     'red': '#FF0000',
     'true red': '#C8102E',
     'tomato red': '#FF6347',
@@ -1104,6 +927,18 @@ function getColorHex(color) {
     'hot pink': '#FF69B4',
     'cool pink': '#D8A0A8',
     'powder pink': '#F4C2C2',
+    'blush': '#F4C2C2',
+    'soft blush': '#FADADD',
+    'muted rose': '#C9A0A0',
+    'dusty pink': '#C9A0A0',
+    'pink': '#FFC0CB',
+    'watermelon': '#FC6C85',
+    'cherry': '#DE3163',
+    'crimson': '#DC143C',
+    'scarlet': '#FF2400',
+    'burgundy': '#800020',
+    'maroon': '#800000',
+    'wine': '#722F37',
     
     // Blues
     'blue': '#0000FF',
@@ -1127,6 +962,11 @@ function getColorHex(color) {
     'turquoise': '#40E0D0',
     'aqua': '#00FFFF',
     'seafoam': '#C0E8D0',
+    'sky blue': '#87CEEB',
+    'light blue': '#ADD8E6',
+    'powder blue': '#B0E0E6',
+    'indigo': '#4B0082',
+    'midnight blue': '#191970',
     
     // Greens
     'green': '#008000',
@@ -1140,8 +980,16 @@ function getColorHex(color) {
     'sage': '#8A9A6A',
     'sage green': '#7C8C5E',
     'mint': '#A0D8B0',
+    'mint green': '#98FF98',
+    'seafoam green': '#C0E8D0',
+    'hunter green': '#355E3B',
+    'kelly green': '#4CBB17',
+    'lime': '#BFFF00',
+    'chartreuse': '#7FFF00',
+    'jade': '#00A86B',
+    'pine': '#014D4E',
     
-    // Yellows/Oranges
+    // Yellows & Oranges
     'yellow': '#FFFF00',
     'gold': '#FFD700',
     'golden yellow': '#FFDF00',
@@ -1165,6 +1013,18 @@ function getColorHex(color) {
     'cinnamon': '#D2691E',
     'copper': '#B87333',
     'bronze': '#CD7F32',
+    'tan': '#D2B48C',
+    'beige': '#E8D8C0',
+    'ivory': '#FFFFF0',
+    'cream': '#FFFDD0',
+    'butter': '#FFD700',
+    'sunflower': '#FFD700',
+    'daffodil': '#FFFF31',
+    'lemon': '#FFF700',
+    'saffron': '#F4C430',
+    'honey': '#EAA121',
+    'caramel': '#AF6F4B',
+    'toffee': '#A0522D',
     
     // Purples
     'purple': '#800080',
@@ -1179,11 +1039,19 @@ function getColorHex(color) {
     'violet': '#EE82EE',
     'royal purple': '#6B3A8A',
     'deep magenta': '#8B008B',
+    'orchid': '#DA70D6',
+    'thistle': '#D8BFD8',
+    'amethyst': '#9966CC',
+    'grape': '#6B2A6B',
+    'eggplant': '#614051',
+    'mulberry': '#C54B8C',
+    'lilac': '#C8A2C8',
     
     // Neutrals
     'black': '#000000',
     'white': '#FFFFFF',
     'gray': '#808080',
+    'grey': '#808080',
     'grayed': '#8A8A8A',
     'charcoal': '#4A4A4A',
     'taupe': '#8B7B6B',
@@ -1205,58 +1073,694 @@ function getColorHex(color) {
     'antique gold': '#C4A050',
     'yellow gold': '#FFD700',
     'bright gold': '#FFDF00',
-    'burgundy': '#800020',
+    'nude': '#E8D8C0',
+    'dusty nude': '#C4B8B0',
+    'soft nude': '#E0D0C0',
+    'warm nude': '#D4C0A8',
+    'cool nude': '#C8C0C0',
+    'stone': '#8B8B7A',
+    'dove': '#C4C4C4',
+    'smoke': '#D0D0D0',
+    'ash': '#B0B0B0',
+    'steel': '#71797E',
+    'iron': '#434B4D',
+    'graphite': '#383838',
+    'obsidian': '#0A0A0A',
+    'ebony': '#555D50',
+    'champagne': '#F7E7CE',
+    'vanilla': '#F3E5AB',
+    'snow': '#FFFAFA',
+    'moonlight': '#F5F5F5',
+    'cloud': '#E8E8E8',
+    'mocha': '#6B3A2A',
+    'cappuccino': '#6B3A2A',
+    'espresso': '#211300',
     
-    // Spring colors
+    // Seasonal specific shades
     'bright spring': '#FF8C69',
     'light spring': '#FFDAB9',
     'true spring': '#FF6347',
-    
-    // Summer colors
     'light summer': '#E8A0BF',
     'true summer': '#C08497',
     'soft summer': '#C48A94',
-    
-    // Autumn colors
     'soft autumn': '#C97B5B',
     'true autumn': '#B7410E',
     'deep autumn': '#8B3A2B',
-    
-    // Winter colors
     'deep winter': '#7B1E3A',
     'true winter': '#C8102E',
-    'bright winter': '#E0115F'
+    'bright winter': '#E0115F',
   };
   
-  // Try exact match first
+  // Try exact match
   if (colorMap[c]) return colorMap[c];
   
-  // Try to find by partial match
+  // Try partial match
   for (const [key, hex] of Object.entries(colorMap)) {
     if (c.includes(key) || key.includes(c)) {
       return hex;
     }
   }
   
-  // If still not found, try to extract the main color word
-  const words = c.split(' ');
+  // Try matching individual words
+  const words = c.split(/\s+/);
   for (const word of words) {
     if (colorMap[word]) return colorMap[word];
   }
   
-  // Generate a consistent color based on the text
-  // This ensures the same text always gets the same color
+  // Generate consistent color from text
   let hash = 0;
   for (let i = 0; i < c.length; i++) {
     hash = c.charCodeAt(i) + ((hash << 5) - hash);
   }
   const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 60%, 70%)`;
+  return `hsl(${hue}, 55%, 65%)`;
+}
+// ============================================
+// METAL COLOR MAP (for jewelry chips)
+// ============================================
+function getMetalColor(metal) {
+  if (!metal) return '#C0C0C0';
+
+  const m = metal.toLowerCase().trim();
+
+  const metalMap = {
+    'gold': '#FFD700',
+    'bright gold': '#FFDF00',
+    'yellow gold': '#FFD700',
+    'warm gold': '#D4A843',
+    'dusty gold': '#C4A86A',
+    'matte gold': '#D4B36A',
+    'brushed gold': '#D8B76A',
+    'antique gold': '#C4A050',
+    'gold with colored stones': '#E8C468',
+    'gold with turquoise or coral stones': '#E8C468',
+    'gold with light-colored stones': '#E8C468',
+    'rose gold': '#E8A2A2',
+    'soft rose gold': '#EFC0C0',
+    'white gold': '#E8E0D8',
+    'silver': '#C0C0C0',
+    'silver gray': '#C0C0C0',
+    'matte silver': '#B8B8B8',
+    'brushed silver': '#C8C8C8',
+    'oxidized silver': '#8A8A8A',
+    'platinum': '#E5E4E2',
+    'pewter': '#A8A8A0',
+    'bronze': '#CD7F32',
+    'brass': '#B5A642',
+    'copper': '#B87333',
+    'gunmetal': '#2C3539',
+    'chrome': '#D8D8D8',
+  };
+
+  // Exact match first
+  if (metalMap[m]) return metalMap[m];
+
+  // Partial match (handles phrases like "gold with colored stones"
+  // falling back to plain "gold" if an exact phrase isn't mapped)
+  for (const [key, hex] of Object.entries(metalMap)) {
+    if (m.includes(key)) return hex;
+  }
+
+  // Fall back to the general color map so an unrecognized metal name
+  // still gets a sensible dot instead of crashing
+  return getColorHex(color => color)(m) || getColorHex(m);
 }
 
+// ============================================
+// DISPLAY RESULTS
+// ============================================
+function displayResults(data) {
+  const a = data.analysis || {};
+  const season = data.season || {};
+  const structuredRecs = data.structured_recommendations || {};
+  const foundations = structuredRecs.foundations || data.foundations || [];
+  
+  // ── Skin Badge ──
+  const skinTone = a.depth || '—';
+  const undertone = a.undertone || '—';
+  const seasonLabel = season.label || season.season_label || '—';
+  const confidence = a.confidence ? Math.round(a.confidence * 100) + '%' : '—';
+  
+  document.getElementById('result-skin-tone').innerHTML = '🌸 <b>' + skinTone + '</b> Skin Tone';
+  document.getElementById('result-undertone').innerHTML = '💄 <b>' + undertone + '</b> Undertone';
+  document.getElementById('result-season').textContent = '🍂 ' + seasonLabel;
+  document.getElementById('result-confidence').textContent = '🎯 Confidence: ' + confidence;
+  document.getElementById('result-summary').innerHTML = `<b>${skinTone}</b> skin with <b>${undertone}</b> undertone — ${seasonLabel}`;
+  
+  // ── Undertone Description ──
+  const undertoneNorm = (undertone || '').toLowerCase();
+  const undertoneDesc = undertoneNorm === 'warm' 
+    ? '🌸 Golden and peachy hues — bronze, caramel, and earth tones suit you beautifully.'
+    : undertoneNorm === 'cool'
+    ? '💖 Pink and rosy hues — jewel tones, berries, and blue-based neutrals suit you.'
+    : undertoneNorm === 'olive'
+    ? '🫒 Earthy, jewel-toned colors with a greenish cast suit you beautifully.'
+    : '✨ Balanced — you can wear both warm and cool colors beautifully.';
+  
+  document.getElementById('undertone-title').textContent = undertone + ' Undertone — ';
+  document.getElementById('undertone-text').textContent = undertoneDesc;
+  
+  // ── ITA ──
+  const ita = a.ita_degrees || 30;
+  const pct = Math.max(2, Math.min(98, ((ita + 90) / 180) * 100));
+  const itaMarker = document.getElementById('ita-marker');
+  const itaLabel = document.getElementById('ita-label');
+  if(itaMarker) itaMarker.style.left = pct + '%';
+  if(itaLabel) itaLabel.textContent = `${skinTone} · ITA ${ita.toFixed(1)}°`;
+  
+  // ── Foundation Matches ──
+  const foundationsBox = document.getElementById('foundations-box');
+  if (foundationsBox) {
+    if (foundations && foundations.length > 0) {
+      foundationsBox.innerHTML = foundations.slice(0, 5).map(f => `
+        <div class="foundation-item">
+          <div class="foundation-info">
+            <div class="foundation-brand">${f.brand || 'Brand'}</div>
+            <div class="foundation-product">${f.product || f.shade || 'Shade'}</div>
+          </div>
+          <div class="foundation-actions">
+            <span class="foundation-shade">${f.shade || 'Shade'}</span>
+            <button class="btn-tryon" onclick="tryOnFoundation('${f.shade}')">Try On</button>
+          </div>
+        </div>
+      `).join('');
+    } else {
+      foundationsBox.innerHTML = `<div style="color:var(--text-light);text-align:center;padding:20px;">No foundation matches found. Try a different image.</div>`;
+    }
+  }
+  
+  // ── Recommendations Text ──
+  // ── AI PERSONAL READ ─────────────────────────────
+const recsText = document.getElementById('recommendations-text');
+
+if (recsText) {
+
+    console.log('🤖 Raw AI response:', data.recommendations);
+    console.log('🤖 Raw ai_recommendations:', data.ai_recommendations);
+
+    let aiSummary = '';
+
+    // New backend format:
+    // ai_recommendations = {
+    //     summary: "...",
+    //     structured: {...},
+    //     ranked_seasons: {...}
+    // }
+    if (data.ai_recommendations) {
+        if (typeof data.ai_recommendations === 'string') {
+            aiSummary = data.ai_recommendations;
+        } else if (typeof data.ai_recommendations.summary === 'string') {
+            aiSummary = data.ai_recommendations.summary;
+        }
+    }
+
+    // Existing/legacy backend format
+    if (!aiSummary && typeof data.recommendations === 'string') {
+        aiSummary = data.recommendations;
+    }
+
+    console.log('🤖 Final AI summary:', aiSummary);
+
+    if (aiSummary && aiSummary.trim().length > 20) {
+        recsText.innerHTML = renderMarkdown(aiSummary);
+    } else {
+        recsText.innerHTML = `
+            <p>Analysis completed, but the AI personal read was not returned.</p>
+            <p>Please check the browser console and backend response.</p>
+        `;
+    }
+}
+  
+  // ── Color Palette ──
+  renderColorPalette(data);
+}
+
+// ============================================
+// RENDER COLOR PALETTE
+// ============================================
+// ============================================
+// RENDER COLOR PALETTE - FIXED VERSION
+// ============================================
+// ============================================
+// RENDER COLOR PALETTE - COMPLETE FIX
+// ============================================
+function renderColorPalette(data) {
+  const paletteContent = document.getElementById('color-palette-content');
+  if (!paletteContent) return;
+  
+  console.log('🔍 Rendering color palette with data:', data);
+  
+  const structuredRecs = data.structured_recommendations || {};
+  const season = structuredRecs.season || data.season || {};
+  const recs = structuredRecs.recommendations || {};
+  
+  console.log('📊 Season data:', season);
+  console.log('📊 Recommendations data:', recs);
+
+  // Helper: safely get array from various formats
+  const safeArray = (value) => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'object') {
+      // Check for common keys
+      for (const key of ['best', 'items', 'values', 'primary', 'secondary']) {
+        if (Array.isArray(value[key])) return value[key];
+      }
+      // If it's an object with numeric keys, convert to array
+      const keys = Object.keys(value);
+      if (keys.length > 0 && keys.every(k => !isNaN(k))) {
+        return Object.values(value);
+      }
+      return [value];
+    }
+    return [value];
+  };
+
+  const getItemName = (item) => {
+    if (!item) return '';
+    if (typeof item === 'string') return item;
+    if (typeof item === 'number') return String(item);
+    return item.name || item.label || item.value || item.shade || item.color || '';
+  };
+
+  const getItemHex = (item) => {
+    if (!item) return '#CCCCCC';
+    if (typeof item === 'string') return getColorHex(item);
+    if (item.hex) return item.hex;
+    if (item.color) return item.color;
+    return getColorHex(getItemName(item));
+  };
+
+  const getItemDesc = (item) => {
+    if (!item || typeof item !== 'object') return '';
+    return item.description || item.desc || '';
+  };
+
+  // ── Extract data ──
+  // Lipsticks
+  let lipsticks = safeArray(season.lipstick);
+  if (lipsticks.length === 0 && season.lipstick && typeof season.lipstick === 'object') {
+    // Try to find any array in the object
+    for (const key of Object.keys(season.lipstick)) {
+      if (Array.isArray(season.lipstick[key]) && season.lipstick[key].length > 0) {
+        lipsticks = season.lipstick[key];
+        break;
+      }
+    }
+  }
+  
+  // Blushes
+  let blushes = safeArray(season.blush);
+  if (blushes.length === 0 && season.blush && typeof season.blush === 'object') {
+    for (const key of Object.keys(season.blush)) {
+      if (Array.isArray(season.blush[key]) && season.blush[key].length > 0) {
+        blushes = season.blush[key];
+        break;
+      }
+    }
+  }
+  
+  // Jewelry
+  let jewelry = safeArray(season.jewelry);
+  if (jewelry.length === 0 && season.jewelry && typeof season.jewelry === 'object') {
+    for (const key of Object.keys(season.jewelry)) {
+      if (Array.isArray(season.jewelry[key]) && season.jewelry[key].length > 0) {
+        jewelry = season.jewelry[key];
+        break;
+      }
+    }
+  }
+  
+  // Best colors
+  let bestColors = season.best_colors || {};
+  if (Array.isArray(bestColors)) {
+    bestColors = { primary: bestColors };
+  }
+  
+  // Worst colors
+  let worstColors = safeArray(season.worst_colors);
+  
+  // Dress occasions
+  let dressOccasions = recs.dress_occasions || {};
+  if (typeof dressOccasions !== 'object' || Array.isArray(dressOccasions)) {
+    dressOccasions = {};
+  }
+  
+  // Eye makeup
+  let eyeMakeup = recs.eye_makeup || {};
+  if (typeof eyeMakeup !== 'object' || Array.isArray(eyeMakeup)) {
+    eyeMakeup = {};
+  }
+  
+  // Hair colors
+  let hairColors = recs.hair_colors || {};
+  if (typeof hairColors !== 'object' || Array.isArray(hairColors)) {
+    hairColors = {};
+  }
+  
+  // Special notes
+  let specialNotes = recs.special_notes || {};
+  if (typeof specialNotes !== 'object' || Array.isArray(specialNotes)) {
+    specialNotes = {};
+  }
+
+  let paletteHTML = '';
+  
+  // ── LIPSTICK SHADES ──
+  if (lipsticks && lipsticks.length > 0) {
+    paletteHTML += `
+      <div class="color-section">
+        <div class="color-section-title">💄 Lipstick Shades</div>
+        <div class="color-swatch-grid">
+          ${lipsticks.map(l => {
+            const name = getItemName(l) || 'Shade';
+            const hex = getItemHex(l);
+            const desc = getItemDesc(l);
+            return `
+              <div class="color-swatch-item">
+                <div class="color-swatch-dot" style="background:${hex}"></div>
+                <span class="color-swatch-name">${name}</span>
+                ${desc ? `<span class="color-swatch-hex">${desc}</span>` : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+  
+  // ── BLUSH SHADES ──
+  if (blushes && blushes.length > 0) {
+    paletteHTML += `
+      <div class="color-section">
+        <div class="color-section-title">🌸 Blush Shades</div>
+        <div class="color-swatch-grid">
+          ${blushes.map(b => {
+            const name = getItemName(b) || 'Shade';
+            const hex = getItemHex(b);
+            const desc = getItemDesc(b);
+            return `
+              <div class="color-swatch-item">
+                <div class="color-swatch-dot" style="background:${hex}"></div>
+                <span class="color-swatch-name">${name}</span>
+                ${desc ? `<span class="color-swatch-hex">${desc}</span>` : ''}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+  
+  // ── JEWELRY ──
+  if (jewelry && jewelry.length > 0) {
+    paletteHTML += `
+      <div class="color-section">
+        <div class="color-section-title">💍 Jewelry</div>
+        <div class="palette-row">
+          ${jewelry.map(j => {
+            const name = getItemName(j);
+            return `
+              <span class="palette-tag">
+                <span class="palette-dot" style="background:${getMetalColor(name)}"></span>
+                ${name}
+              </span>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+  
+  // ── BEST PRIMARY COLORS ──
+  const primaryColors = safeArray(bestColors.primary);
+  if (primaryColors.length > 0) {
+    paletteHTML += `
+      <div class="color-section">
+        <div class="color-section-title">👗 Best Primary Colors</div>
+        <div class="palette-row">
+          ${primaryColors.map(c => `
+            <span class="palette-tag">
+              <span class="palette-dot" style="background:${getItemHex(c)}"></span>
+              ${getItemName(c)}
+            </span>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+  
+  // ── BEST SECONDARY COLORS ──
+  const secondaryColors = safeArray(bestColors.secondary);
+  if (secondaryColors.length > 0) {
+    paletteHTML += `
+      <div class="color-section">
+        <div class="color-section-title">👗 Best Secondary Colors</div>
+        <div class="palette-row">
+          ${secondaryColors.map(c => `
+            <span class="palette-tag">
+              <span class="palette-dot" style="background:${getItemHex(c)}"></span>
+              ${getItemName(c)}
+            </span>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+  
+  // ── COLORS TO AVOID ──
+  if (worstColors.length > 0) {
+    paletteHTML += `
+      <div class="color-section">
+        <div class="color-section-title">⚠️ Colors to Avoid</div>
+        <div class="palette-row">
+          ${worstColors.map(c => `
+            <span class="palette-tag palette-tag-avoid">
+              <span class="palette-dot" style="background:${getItemHex(c)}"></span>
+              ${getItemName(c)}
+            </span>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+  
+  // ── EYE MAKEUP ──
+  const eyeBest = safeArray(eyeMakeup.best);
+  const eyeAvoid = safeArray(eyeMakeup.avoid);
+  
+  if (eyeBest.length > 0 || eyeAvoid.length > 0) {
+    paletteHTML += `
+      <div class="color-section">
+        <div class="color-section-title">👁️ Eye Makeup</div>
+        ${eyeBest.length > 0 ? `
+          <div class="palette-row">
+            <span class="palette-label">Best:</span>
+            ${eyeBest.map(c => `
+              <span class="palette-tag">
+                <span class="palette-dot" style="background:${getItemHex(c)}"></span>
+                ${getItemName(c)}
+              </span>
+            `).join('')}
+          </div>
+        ` : ''}
+        ${eyeAvoid.length > 0 ? `
+          <div class="palette-row">
+            <span class="palette-label">Avoid:</span>
+            ${eyeAvoid.map(c => `
+              <span class="palette-tag palette-tag-avoid">
+                <span class="palette-dot" style="background:${getItemHex(c)}"></span>
+                ${getItemName(c)}
+              </span>
+            `).join('')}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+  
+  // ── HAIR COLORS ──
+  const hairBest = safeArray(hairColors.best);
+  const hairAvoid = safeArray(hairColors.avoid);
+  
+  if (hairBest.length > 0 || hairAvoid.length > 0 || hairColors.highlight_notes) {
+    paletteHTML += `
+      <div class="color-section">
+        <div class="color-section-title">💇 Hair Color</div>
+        ${hairBest.length > 0 ? `
+          <div class="palette-row">
+            <span class="palette-label">Best:</span>
+            ${hairBest.map(c => `
+              <span class="palette-tag">
+                <span class="palette-dot" style="background:${getItemHex(c)}"></span>
+                ${getItemName(c)}
+              </span>
+            `).join('')}
+          </div>
+        ` : ''}
+        ${hairAvoid.length > 0 ? `
+          <div class="palette-row">
+            <span class="palette-label">Avoid:</span>
+            ${hairAvoid.map(c => `
+              <span class="palette-tag palette-tag-avoid">
+                <span class="palette-dot" style="background:${getItemHex(c)}"></span>
+                ${getItemName(c)}
+              </span>
+            `).join('')}
+          </div>
+        ` : ''}
+        ${hairColors.highlight_notes ? `
+          <div style="font-size:0.8rem;color:var(--text-light);margin-top:4px;">💡 ${hairColors.highlight_notes}</div>
+        ` : ''}
+      </div>
+    `;
+  }
+  
+  // ── OUTFIT IDEAS BY OCCASION ──
+  const occasionLabels = {
+    casual: 'Casual',
+    office: 'Office Wear',
+    evening: 'Evening Looks',
+    wedding_guest: 'Wedding Guest',
+    summer_dresses: 'Summer Dresses',
+    date_night: 'Date Night',
+    vacation: 'Vacation'
+  };
+  
+  let hasOccasions = false;
+  const occasionHTML = Object.entries(dressOccasions).map(([occasion, items]) => {
+    const itemsArray = safeArray(items);
+    if (itemsArray.length === 0) return '';
+    hasOccasions = true;
+    const label = occasionLabels[occasion] || occasion.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return `
+      <div class="palette-row">
+        <span class="palette-label">${label}:</span>
+        ${itemsArray.map(item => `
+          <span class="palette-tag">
+            <span class="palette-dot" style="background:${getItemHex(item)}"></span>
+            ${getItemName(item)}
+          </span>
+        `).join('')}
+      </div>
+    `;
+  }).join('');
+  
+  if (hasOccasions) {
+    paletteHTML += `
+      <div class="color-section">
+        <div class="color-section-title">👚 Outfit Ideas by Occasion</div>
+        ${occasionHTML}
+      </div>
+    `;
+  }
+  
+  // ── SPECIAL NOTES ──
+  const notes = [];
+  if (specialNotes.pigmented_lips) notes.push(`💋 ${specialNotes.pigmented_lips}`);
+  if (specialNotes.hyperpigmentation) notes.push(`✨ ${specialNotes.hyperpigmentation}`);
+  if (specialNotes.olive_skin) notes.push(`🫒 ${specialNotes.olive_skin}`);
+  
+  if (notes.length > 0) {
+    paletteHTML += `
+      <div class="color-section">
+        <div class="color-section-title">✨ Special Notes</div>
+        <ul style="list-style:none;padding:0;margin:0;">
+          ${notes.map(n => `<li style="padding:4px 0;color:var(--text-light);font-size:0.85rem;">${n}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }
+  
+  // ── FALLBACK ──
+  if (!paletteHTML) {
+    paletteHTML = `
+      <div style="color:var(--text-light);text-align:center;padding:20px;">
+        <p>No detailed palette data available for this analysis.</p>
+        <p style="font-size:0.85rem;margin-top:8px;">Your season is <strong>${data.season?.label || data.season?.season_label || '—'}</strong>.</p>
+      </div>
+    `;
+  }
+  
+  paletteContent.innerHTML = paletteHTML;
+  console.log('✅ Palette rendered with HTML length:', paletteHTML.length);
+}
+// ── Helper: Render Markdown ──
+function renderMarkdown(text) {
+  if (!text) return 'No recommendations available.';
+
+  const escapeHtml = (value) => String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+  const formatInline = (value) => escapeHtml(value)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[^*])\*([^*]+)\*(?!\*)/g, '$1<em>$2</em>');
+
+  const lines = String(text).replace(/\r\n?/g, '\n').split('\n');
+  const output = [];
+  let listItems = [];
+  let paragraphLines = [];
+
+  const flushList = () => {
+    if (!listItems.length) return;
+    output.push(`<ul style="margin:6px 0 12px 20px;padding-left:16px;list-style:disc;">${listItems.map(item => `<li style="margin:3px 0;">${formatInline(item)}</li>`).join('')}</ul>`);
+    listItems = [];
+  };
+
+  const flushParagraph = () => {
+    if (!paragraphLines.length) return;
+    output.push(`<p style="margin:0 0 12px;line-height:1.7;">${formatInline(paragraphLines.join(' '))}</p>`);
+    paragraphLines = [];
+  };
+
+  lines.forEach(line => {
+    const trimmed = line.trim();
+    const bullet = trimmed.match(/^[-•]\s+(.+)$/);
+
+    if (bullet) {
+      flushParagraph();
+      listItems.push(bullet[1]);
+      return;
+    }
+
+    flushList();
+
+    if (!trimmed) {
+      flushParagraph();
+    } else if (/^###\s+/.test(trimmed)) {
+      flushParagraph();
+      const isFirstHeader = output.length === 0;
+      const headerStyle = isFirstHeader
+        ? "margin-top:0;margin-bottom:10px;color:var(--text);font-weight:600;font-size:1.05rem;"
+        : "margin-top:26px;padding-top:22px;border-top:1px solid var(--rose-border);margin-bottom:10px;color:var(--text);font-weight:600;font-size:1.05rem;";
+      output.push(`<h3 style="${headerStyle}">${formatInline(trimmed.replace(/^###\s+/, ''))}</h3>`);
+    } else if (/^##\s+/.test(trimmed)) {
+      flushParagraph();
+      output.push(`<h3 style="margin-top:16px;margin-bottom:8px;color:var(--text);font-weight:600;">${formatInline(trimmed.replace(/^##\s+/, ''))}</h3>`);
+    } else if (/^#\s+/.test(trimmed)) {
+      flushParagraph();
+      output.push(`<h2 style="margin-top:20px;margin-bottom:8px;color:var(--text);font-weight:600;font-family:var(--font-serif);">${formatInline(trimmed.replace(/^#\s+/, ''))}</h2>`);
+    } else {
+      paragraphLines.push(trimmed);
+    }
+  });
+
+  flushList();
+  flushParagraph();
+  return output.join('');
+}
+
+// ============================================
+// SHOW ERROR DIALOG
+// ============================================
 function showErrorDialog(message) {
   const paletteContent = document.getElementById('color-palette-content');
   const foundationsBox = document.getElementById('foundations-box');
+  const recsText = document.getElementById('recommendations-text');
   
   if (paletteContent) {
     paletteContent.innerHTML = `
@@ -1281,11 +1785,87 @@ function showErrorDialog(message) {
     foundationsBox.innerHTML = `<div style="color:var(--text-light);text-align:center;padding:20px;">⚠️ ${message}</div>`;
   }
   
-  if (recommendationsText) {
-    recommendationsText.textContent = 'Analysis failed. Please try again with a better photo.';
+  if (recsText) {
+    recsText.innerHTML = `<p style="color:#D47A7A;">⚠️ ${message}</p>`;
   }
   
   showPage(2);
+}
+
+// ============================================
+// TRY-ON FUNCTIONS
+// ============================================
+async function tryOnFoundation(shade) {
+  if (!isBackendOnline) {
+    await checkBackendConnection();
+    if (!isBackendOnline) {
+      alert('⚠️ Backend server is not responding. Please make sure the server is running on port 5001.');
+      return;
+    }
+  }
+  
+  currentShade = shade;
+  const modal = document.getElementById('tryon-modal');
+  modal.classList.add('show');
+  
+  document.getElementById('tryon-image').style.display = 'none';
+  document.getElementById('tryon-loading').style.display = 'block';
+  
+  if (!currentImageFile) {
+    alert('Please upload an image first');
+    closeTryOn();
+    return;
+  }
+  
+  const formData = new FormData();
+  formData.append('image', currentImageFile);
+  formData.append('shade', shade);
+  formData.append('intensity', currentIntensity);
+  
+  try {
+    const response = await fetch(API_TRYON_URL, {
+      method: 'POST',
+      body: formData,
+      signal: AbortSignal.timeout(30000)
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      document.getElementById('tryon-image').src = 'data:image/jpeg;base64,' + data.image;
+      document.getElementById('tryon-image').style.display = 'block';
+      document.getElementById('tryon-loading').style.display = 'none';
+    } else {
+      alert('Error: ' + (data.error || 'Unknown error'));
+      closeTryOn();
+    }
+  } catch (error) {
+    console.error('Try-on error:', error);
+    if (error.name === 'AbortError' || error.name === 'TimeoutError') {
+      alert('⏱️ Request timed out. Please try again.');
+    } else {
+      alert('Failed to apply foundation. Please try again.');
+    }
+    closeTryOn();
+  }
+}
+
+function closeTryOn() {
+  document.getElementById('tryon-modal').classList.remove('show');
+}
+
+function adjustIntensity() {
+  const values = [0.3, 0.5, 0.7, 0.9, 1.0];
+  const labels = ['Light', 'Medium', 'Full', 'Heavy', 'Maximum'];
+  const currentIndex = values.indexOf(currentIntensity);
+  const nextIndex = (currentIndex + 1) % values.length;
+  currentIntensity = values[nextIndex];
+  
+  document.getElementById('tryon-intensity').textContent = '💫 ' + labels[nextIndex] + ' Coverage';
+  
+  if (currentShade) {
+    tryOnFoundation(currentShade);
+  }
 }
 
 // ============================================
@@ -1315,70 +1895,7 @@ if(dropZone) {
 const restartBtn = document.getElementById('restart-btn');
 if(restartBtn) restartBtn.addEventListener('click', resetApp);
 
-// ============================================
-// TRY-ON FUNCTIONS
-// ============================================
-async function tryOnFoundation(shade) {
-    currentShade = shade;
-    const modal = document.getElementById('tryon-modal');
-    modal.classList.add('show');
-    
-    document.getElementById('tryon-image').style.display = 'none';
-    document.getElementById('tryon-loading').style.display = 'block';
-    
-    if (!currentImageFile) {
-        alert('Please upload an image first');
-        closeTryOn();
-        return;
-    }
-    
-    const formData = new FormData();
-    formData.append('image', currentImageFile);
-    formData.append('shade', shade);
-    formData.append('intensity', currentIntensity);
-    
-    try {
-        const response = await fetch('http://localhost:5001/api/tryon', {
-            method: 'POST',
-            body: formData
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            document.getElementById('tryon-image').src = 'data:image/jpeg;base64,' + data.image;
-            document.getElementById('tryon-image').style.display = 'block';
-            document.getElementById('tryon-loading').style.display = 'none';
-        } else {
-            alert('Error: ' + data.error);
-            closeTryOn();
-        }
-    } catch (error) {
-        console.error('Try-on error:', error);
-        alert('Failed to apply foundation. Please try again.');
-        closeTryOn();
-    }
-}
-
-function closeTryOn() {
-    document.getElementById('tryon-modal').classList.remove('show');
-}
-
-function adjustIntensity() {
-    const values = [0.3, 0.5, 0.7, 0.9, 1.0];
-    const labels = ['Light', 'Medium', 'Full', 'Heavy', 'Maximum'];
-    const currentIndex = values.indexOf(currentIntensity);
-    const nextIndex = (currentIndex + 1) % values.length;
-    currentIntensity = values[nextIndex];
-    
-    document.getElementById('tryon-intensity').textContent = '💫 ' + labels[nextIndex] + ' Coverage';
-    
-    if (currentShade) {
-        tryOnFoundation(currentShade);
-    }
-}
-
-// Webcam
+// ── Webcam ──
 const camBtn = document.getElementById('cam-btn');
 const camSection = document.getElementById('cam-section');
 const camVideo = document.getElementById('cam-video');
@@ -1394,11 +1911,7 @@ if(camBtn) {
       if(camSection) camSection.style.display = 'block';
       if(camBtn) camBtn.style.display = 'none';
     } catch(e) { 
-      const errorMsg = document.getElementById('p1-error-msg');
-      if(errorMsg) errorMsg.textContent = 'Camera access denied';
-      const errorDiv = document.getElementById('p1-error');
-      if(errorDiv) errorDiv.classList.add('show');
-      setTimeout(() => { if(errorDiv) errorDiv.classList.remove('show'); }, 3000);
+      showUploadError('Camera access denied. Please allow camera access or upload a photo.');
     }
   });
 }
