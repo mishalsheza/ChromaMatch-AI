@@ -54,7 +54,10 @@ except Exception as e:
     foundations = []
 
 try:
-    from ai.recommendation.season import get_season_recommendations
+    from ai.recommendation.season import (
+        get_season_recommendations,
+        get_ranked_season_recommendations
+    )
     print("✅ Season classification loaded")
 except Exception as e:
     print(f"❌ Season classification error: {e}")
@@ -63,11 +66,15 @@ except Exception as e:
 # IMPORT GROQ AI RECOMMENDATIONS
 # ──────────────────────────────────────────────────────────────
 try:
-    from ai.recommendation.groq_writer import get_ai_recommendations
+    from ai.recommendation.groq_writer import (
+        get_ai_recommendations,
+        get_ai_recommendations_ranked
+    )
     print("✅ Groq AI recommendations loaded")
 except Exception as e:
     print(f"⚠️ Groq AI recommendations error: {e}")
     get_ai_recommendations = None
+    get_ai_recommendations_ranked = None
     print("⚠️ No recommendation writer available")
 
 # ──────────────────────────────────────────────────────────────
@@ -201,57 +208,142 @@ def analyze():
             'blush_family': {'name': 'neutral'}
         }
     
+    # ── Step 3B: Rank Season Candidates ──
+    try:
+        ranked_seasons = get_ranked_season_recommendations(
+            face_result,
+            top_n=3
+        )
+
+        print("📊 Ranked season candidates:")
+        for candidate in ranked_seasons.get("top_seasons", []):
+            print(
+                f"   {candidate['score_pct']:.1f}% "
+                f"{candidate['season_label']}"
+            )
+
+        print(
+            f"📊 Season margin: "
+            f"{ranked_seasons.get('margin_pct', 0):.1f}% "
+            f"| close call: "
+            f"{ranked_seasons.get('is_close_call', False)}"
+        )
+
+    except Exception as e:
+        print(f"⚠️ Ranked season analysis error: {e}")
+        ranked_seasons = {
+            "top_seasons": [],
+            "margin": 0,
+            "margin_pct": 0,
+            "is_close_call": False,
+            "winner_key": season.get("season_key")
+        }
+
     # ── Step 4: Generate AI Recommendations ──
     ai_used = False
-    recommendations_text = "Analysis complete. See your skin profile and foundation matches below."
+    recommendations_text = (
+        "Analysis complete. "
+        "See your skin profile and foundation matches below."
+    )
     structured_recommendations = {}
+
     season_details = {
-        'jewelry': season.get('jewelry', ['gold', 'silver']),
-        'lipstick': season.get('lipstick_family', {}).get('name', 'neutral'),
-        'blush': season.get('blush_family', {}).get('name', 'neutral'),
+        'jewelry': season.get(
+            'jewelry',
+            ['gold', 'silver']
+        ),
+        'lipstick': season.get(
+            'lipstick_family',
+            {}
+        ).get(
+            'name',
+            'neutral'
+        ),
+        'blush': season.get(
+            'blush_family',
+            {}
+        ).get(
+            'name',
+            'neutral'
+        ),
         'best_colors': {},
         'worst_colors': []
     }
-    
-    if get_ai_recommendations:
+
+    if get_ai_recommendations_ranked:
         try:
-            # Prepare season data for AI
-            season_data_for_ai = {
-                'season_key': season.get('season_key'),
-                'season_label': season.get('season_label', 'Neutral'),
-                'family': season.get('family', 'neutral'),
-                'jewelry': season.get('jewelry', ['gold', 'silver']),
-                'lipstick_family': season.get('lipstick_family', {}),
-                'blush_family': season.get('blush_family', {}),
-                'raw_data': season.get('raw_data', {})
-}
-            
-            # Call the AI recommendations
-            ai_result = get_ai_recommendations(
-                face_result, 
-                matches, 
-                season_data_for_ai
+            season_reference_path = os.path.join(
+                ROOT_DIR,
+                "ai",
+                "data",
+                "season_color_reference.json"
             )
-            
-            # Extract the results
-            recommendations_text = ai_result.get('summary', 'Analysis complete.')
-            structured_recommendations = ai_result.get('structured', {})
-            
-            # Extract season details from structured data
-            if 'season' in structured_recommendations:
-                season_details = structured_recommendations['season']
-            
+
+            with open(
+                season_reference_path,
+                "r"
+            ) as f:
+                seasons_full_data = json.load(f).get(
+                    "seasons",
+                    {}
+                )
+
+            ai_result = get_ai_recommendations_ranked(
+                face_result,
+                matches,
+                ranked_seasons,
+                seasons_full_data
+            )
+
+            recommendations_text = ai_result.get(
+                "summary",
+                "Analysis complete."
+            )
+
+            structured_recommendations = ai_result.get(
+                "structured",
+                {}
+            )
+
+            structured_recommendations[
+                "ranked_seasons"
+            ] = ranked_seasons
+
+            if "season" in structured_recommendations:
+                season_details = structured_recommendations[
+                    "season"
+                ]
+
             ai_used = True
-            print("✅ AI recommendations generated successfully")
-            
+
+            print(
+                "✅ Ranked AI recommendations "
+                "generated successfully"
+            )
+
         except Exception as e:
-            print(f"⚠️ AI recommendation error: {e}")
+            print(
+                f"⚠️ AI recommendation error: {e}"
+            )
+
             import traceback
             traceback.print_exc()
-            # Fallback to basic response
-            recommendations_text = f"🌟 Based on your skin analysis, you have {face_result.get('depth', 'medium')} skin with {face_result.get('undertone', 'neutral')} undertones.\n\n💄 Your best foundation match is {matches[0]['brand'] + ' - ' + matches[0]['shade'] if matches else 'None found'}.\n\n🎨 Your color season is {season.get('season_label', 'Neutral')}."
+
+            recommendations_text = (
+                f"🌟 Based on your skin analysis, "
+                f"you have "
+                f"{face_result.get('depth', 'medium')} "
+                f"skin with "
+                f"{face_result.get('undertone', 'neutral')} "
+                f"undertones.\n\n"
+                f"💄 Your best foundation match is "
+                f"{matches[0]['brand'] + ' - ' + matches[0]['shade'] if matches else 'None found'}.\n\n"
+                f"🎨 Your color season is "
+                f"{season.get('season_label', 'Neutral')}."
+            )
+
             ai_used = False
-    
+
     # ── Step 5: Build Response ──
     response = {
         'success': True,
