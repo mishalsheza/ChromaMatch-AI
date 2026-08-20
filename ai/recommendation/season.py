@@ -448,6 +448,19 @@ def score_all_seasons(
 
         total = u_score + d_score + c_score + ct_score
 
+        # ── Penalize hard mismatches ──
+# A zero on undertone (the season-defining trait) is far worse than a
+# zero on a secondary trait like clarity — treat them differently
+# instead of flattening every mismatch to the same 50% cap.
+        zero_count = sum(1 for s in (u_score, d_score, c_score, ct_score) if s == 0)
+
+        if u_score == 0:
+            total *= 0.25   # wrong temperature family — never a serious contender
+        elif zero_count >= 2:
+            total *= 0.55   # multiple secondary mismatches compound
+        elif zero_count == 1:
+            total *= 0.75   # single secondary mismatch, scaled down but ranking preserved
+
         results.append({
             "season_key": season_key,
             "season_label": season_data.get("label", season_key),
@@ -460,7 +473,6 @@ def score_all_seasons(
                 "contrast": ct_score,
             },
         })
-
     results.sort(key=lambda r: r["score"], reverse=True)
     return results
 
