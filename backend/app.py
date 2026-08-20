@@ -17,6 +17,8 @@ import json
 import uuid
 import math
 
+
+
 # ──────────────────────────────────────────────────────────────
 # PATH SETUP
 # ──────────────────────────────────────────────────────────────
@@ -70,6 +72,9 @@ try:
         get_ai_recommendations,
         get_ai_recommendations_ranked
     )
+    import ai.recommendation.groq_writer as gw
+
+    print("🗂️ groq_writer.py is loaded from:", gw.__file__)
     print("✅ Groq AI recommendations loaded")
 except Exception as e:
     print(f"⚠️ Groq AI recommendations error: {e}")
@@ -375,7 +380,10 @@ def analyze():
             'worst_colors': season_details.get('worst_colors', [])
         },
         'recommendations': recommendations_text,
-        'structured_recommendations': structured_recommendations
+        'ai_recommendations': {
+        'summary': recommendations_text
+    },
+    'structured_recommendations': structured_recommendations
     }
     
     return jsonify(response)
