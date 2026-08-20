@@ -22,41 +22,46 @@ It features a high-fidelity **Flask API** backend running Python CV/ML models, a
 
 ## 🚀 Key Features
 
-* **Advanced Face Region Extraction:** Dynamically isolates the cheeks and jawline using Haar Cascades and precise geometric calculations.
-* **Strict Skin Pixel Masking:** Utilizes YCrCb and HSV color spaces to aggressively filter out background noise, hair, and glare.
-* **CIELAB ($L^*a^*b^*$) Color Science:** Converts RGB pixels to the CIELAB color space to decouple luminance (shadows/highlights) from pure chrominance, enabling highly accurate undertone calculations.
-* **Statistical Outlier Rejection:** Applies 10th-90th percentile trimming and Z-Score thresholding ($\le 2.0$) to guarantee only the most uniform skin pixels are processed.
-* **Custom Multi-task CNN Inference:** Feeds the cleaned data into a custom-trained Convolutional Neural Network (balanced with Scikit-Learn class weights) to classify tone and undertone.
-* **Generative Aesthetic LLM:** Integrates the MiniCPM-V multimodal LLM to generate strict JSON payloads detailing personalized clothing palettes, jewelry metals, and makeup shades.
-* **Stateless & Secure:** In-memory request buffer decoding (`np.frombuffer`) ensures zero images are saved to disk, ensuring privacy and eliminating server IOPS bottlenecks.
+- **Advanced Face Region Extraction:** Dynamically isolates the cheeks and jawline using Haar Cascades and precise geometric calculations.
+- **Strict Skin Pixel Masking:** Utilizes YCrCb and HSV color spaces to aggressively filter out background noise, hair, and glare.
+- **CIELAB ($L^*a^*b^*$) Color Science:** Converts RGB pixels to the CIELAB color space to decouple luminance (shadows/highlights) from pure chrominance, enabling highly accurate undertone calculations.
+- **Statistical Outlier Rejection:** Applies 10th-90th percentile trimming and Z-Score thresholding ($\le 2.0$) to guarantee only the most uniform skin pixels are processed.
+- **Custom Multi-task CNN Inference:** Feeds the cleaned data into a custom-trained Convolutional Neural Network (balanced with Scikit-Learn class weights) to classify tone and undertone.
+- **Generative Aesthetic LLM:** Integrates the MiniCPM-V multimodal LLM to generate strict JSON payloads detailing personalized clothing palettes, jewelry metals, and makeup shades.
+- **Stateless & Secure:** In-memory request buffer decoding (`np.frombuffer`) ensures zero images are saved to disk, ensuring privacy and eliminating server IOPS bottlenecks.
 
 ---
 
 ## 🏗️ Technical Architecture & Pipeline
 
 ### 1. Computer Vision & Preprocessing Pipeline
+
 1. **Geometric Masking:** OpenCV Haar Cascades detect the face, generating an elliptical mask that explicitly subtracts eyes, eyebrows, lips, and hairline using proportional ratios.
 2. **Chrominance Filtering:** Image is converted to YCrCb and HSV. Strict bounding thresholds generate a boolean mask identifying only human skin pixels.
 3. **Statistical Cleaning:** Pixels are converted to CIELAB. Hard lightness bounds ($30 \le L \le 230$) are enforced. Z-score standard deviation matrices identify and strip glare/shadow outliers.
 
 ### 2. Machine Learning & Inference
-* **CNN Architecture:** The `balanced_skin_analyzer.h5` model is a multi-headed network predicting both skin tone depth and undertone simultaneously. It was trained using mathematical loss-weight penalties (`compute_class_weight`) to counteract dataset imbalances.
-* **Fallback Systems:** The application is fault-tolerant. If the facial geometric scan fails, it gracefully falls back to user-defined manual sampling points or broad region estimation.
+
+- **CNN Architecture:** The `balanced_skin_analyzer.h5` model is a multi-headed network predicting both skin tone depth and undertone simultaneously. It was trained using mathematical loss-weight penalties (`compute_class_weight`) to counteract dataset imbalances.
+- **Fallback Systems:** The application is fault-tolerant. If the facial geometric scan fails, it gracefully falls back to user-defined manual sampling points or broad region estimation.
 
 ### 3. Tech Stack
-* **Frontend:** React 19, Vite, Lucide-React, Native CSS Variables (Glassmorphic Luxury Theme).
-* **Backend:** Python 3, Flask, Flask-CORS.
-* **AI & CV Libraries:** OpenCV (`cv2`), TensorFlow (`tf.keras`), Scikit-Learn, NumPy.
+
+- **Frontend:** React 19, Vite, Lucide-React, Native CSS Variables (Glassmorphic Luxury Theme).
+- **Backend:** Python 3, Flask, Flask-CORS.
+- **AI & CV Libraries:** OpenCV (`cv2`), TensorFlow (`tf.keras`), Scikit-Learn, NumPy.
 
 ---
 
 ## 💻 Running the Project Locally
 
 ### Prerequisites
-* Python 3.9+
-* Node.js 18+ & npm
+
+- Python 3.9+
+- Node.js 18+ & npm
 
 ### 1. Launch the Backend (Flask + AI)
+
 ```bash
 # 1. Navigate to the backend directory
 cd backend
@@ -71,9 +76,11 @@ pip install -r requirements.txt
 # 4. Start the Flask server
 python app.py
 ```
-*The API will launch at `http://localhost:5001`*
+
+_The API will launch at `http://localhost:5001`_
 
 ### 2. Launch the Frontend (React)
+
 ```bash
 # 1. Open a new terminal and navigate to the frontend directory
 cd frontend
@@ -84,19 +91,34 @@ npm install
 # 3. Start the Vite development server
 npm run dev
 ```
-*The web client will launch at `http://localhost:5173`*
+
+_The web client will launch at `http://localhost:5173`_
+
+### Optional VLM pipeline
+
+The CNN endpoint remains available at `/api/analyze`. The new `/analyze-vlm` endpoint reuses MediaPipe cheek grounding, then runs MiniCPM-V classification and curated palette retrieval. The VLM module is lazy: adding the base backend requirements does not download model weights.
+
+The default model is OpenBMB's `openbmb/MiniCPM-V-2_6-int4`. The checkpoint is gated on Hugging Face and requires local approval/login; set `SHADESENSE_VLM_MODEL` to another approved local or Hugging Face model when needed. Install the MiniCPM-V/Transformers stack and download weights only after approving that model setup. GGUF builds are also published for llama.cpp, but require a separate multimodal llama.cpp runtime and are not auto-installed by this project.
+
+```bash
+export SHADESENSE_VLM_MODEL=openbmb/MiniCPM-V-2_6-int4
+curl -F image=@path/to/face.jpg http://localhost:5001/analyze-vlm
+```
 
 ---
 
 ## 🔌 API Documentation
 
 ### `POST /api/analyze`
+
 Accepts a user selfie and returns the full color-science analysis and LLM aesthetic recommendations.
 
 **Request:** `multipart/form-data`
-* `image`: (File) The selfie image (JPEG/PNG).
+
+- `image`: (File) The selfie image (JPEG/PNG).
 
 **Response (Success 200 OK):**
+
 ```json
 {
   "success": true,
@@ -123,5 +145,6 @@ Accepts a user selfie and returns the full color-science analysis and LLM aesthe
 ---
 
 ## 🛡️ License & Copyright
-© 2026 ShadeSense AI. All rights reserved. 
+
+© 2026 ShadeSense AI. All rights reserved.
 Built leveraging MediaPipe, OpenCV, and the CIELAB color space.
