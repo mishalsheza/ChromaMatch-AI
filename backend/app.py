@@ -235,18 +235,38 @@ def analyze():
         matches = match_foundations(skin_lab, foundations, top_k=5)
 
     # ── Step 4: Season Classification ──
+    # ── Step 4: Season Classification (use ranked winner) ──
     try:
-        season = get_season_recommendations(face_result)
-        print(f"📊 Season classification: {season.get('season_label', 'Unknown')}")
+        ranked_seasons = get_ranked_season_recommendations(face_result, top_n=3)
+        
+        if ranked_seasons.get("top_seasons"):
+            ranked_winner = ranked_seasons["top_seasons"][0]
+            ranked_winner_key = ranked_winner["season_key"]
+            
+            season_reference_path = os.path.join(ROOT_DIR, "ai", "data", "season_color_reference.json")
+            with open(season_reference_path, "r") as f:
+                seasons_full_data = json.load(f).get("seasons", {})
+            
+            winner_full = seasons_full_data.get(ranked_winner_key, {})
+            
+            season = {
+                "season_key": ranked_winner_key,
+                "season_label": winner_full.get("label", ranked_winner["season_label"]),
+                "family": winner_full.get("family", "neutral"),
+                "profile": winner_full.get("profile", {}),
+                "jewelry": winner_full.get("jewelry_simple", ["silver", "gold"]),
+                "lipstick_family": winner_full.get("lipstick_family", {"name": "neutral", "hexes": []}),
+                "blush_family": winner_full.get("blush_family", {"name": "neutral", "hexes": []}),
+                "raw_data": winner_full,
+            }
+            print(f"📊 Season: {season['season_label']} ({ranked_winner['score_pct']:.1f}%)")
+        else:
+            raise Exception("No ranked seasons found")
+            
     except Exception as e:
         print(f"⚠️ Season classification error: {e}")
-        season = {
-            'season_label': 'Neutral',
-            'family': 'neutral',
-            'jewelry': ['gold', 'silver'],
-            'lipstick_family': {'name': 'neutral'},
-            'blush_family': {'name': 'neutral'}
-        }
+        # Fallback to rule-based
+        season = get_season_recommendations(face_result)
 
     # ── Step 5: Rank Season Candidates ──
     try:
@@ -265,6 +285,46 @@ def analyze():
             "is_close_call": False,
             "winner_key": season.get("season_key")
         }
+        # ── Step 5.5: Load full season data, override with ranked winner if confident ──
+    seasons_full_data = {}
+    try:
+        season_reference_path = os.path.join(ROOT_DIR, "ai", "data", "season_color_reference.json")
+        with open(season_reference_path, "r") as f:
+            seasons_full_data = json.load(f).get("seasons", {})
+    except Exception as e:
+        print(f"⚠️ Could not load season_color_reference.json: {e}")
+
+    RANKED_OVERRIDE_THRESHOLD = 70.0
+    top_seasons = ranked_seasons.get("top_seasons", [])
+
+    if (
+        top_seasons
+        and top_seasons[0]["score_pct"] > RANKED_OVERRIDE_THRESHOLD
+        and not ranked_seasons.get("is_close_call", True)
+    ):
+        ranked_winner_key = top_seasons[0]["season_key"]
+
+        if ranked_winner_key != season.get("season_key"):
+            print(f"⚠️ Overriding rule-based season "
+                  f"'{season.get('season_key')}' → ranked winner "
+                  f"'{ranked_winner_key}' ({top_seasons[0]['score_pct']:.1f}%)")
+
+            winner_full = seasons_full_data.get(ranked_winner_key, {})
+            if winner_full:
+                season = {
+                    "season_key": ranked_winner_key,
+                    "season_label": winner_full.get("label", ranked_winner_key),
+                    "family": winner_full.get("family", "neutral"),
+                    "profile": winner_full.get("profile", {}),
+                    "jewelry": winner_full.get("jewelry_simple", ["silver", "gold"]),
+                    "lipstick_family": winner_full.get(
+                        "lipstick_family", {"name": "neutral", "hexes": []}
+                    ),
+                    "blush_family": winner_full.get(
+                        "blush_family", {"name": "neutral", "hexes": []}
+                    ),
+                    "raw_data": winner_full,
+                }
 
     # ── Step 6: Generate AI Recommendations ──
     ai_used = False
@@ -281,9 +341,7 @@ def analyze():
 
     if get_ai_recommendations_ranked:
         try:
-            season_reference_path = os.path.join(ROOT_DIR, "ai", "data", "season_color_reference.json")
-            with open(season_reference_path, "r") as f:
-                seasons_full_data = json.load(f).get("seasons", {})
+            
 
             ai_result = get_ai_recommendations_ranked(
                 face_result,

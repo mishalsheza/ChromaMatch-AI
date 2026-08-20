@@ -894,7 +894,56 @@ async function analyzeWithAI() {
     }
   }
 }
+// ============================================
+// METAL COLOR MAP (for jewelry chips)
+// ============================================
+function getMetalColor(metal) {
+  if (!metal) return '#C0C0C0';
 
+  const m = metal.toLowerCase().trim();
+
+  const metalMap = {
+    'gold': '#FFD700',
+    'bright gold': '#FFDF00',
+    'yellow gold': '#FFD700',
+    'warm gold': '#D4A843',
+    'dusty gold': '#C4A86A',
+    'matte gold': '#D4B36A',
+    'brushed gold': '#D8B76A',
+    'antique gold': '#C4A050',
+    'gold with colored stones': '#E8C468',
+    'rose gold': '#E8A2A2',
+    'soft rose gold': '#EFC0C0',
+    'white gold': '#E8E0D8',
+    'silver': '#C0C0C0',
+    'silver gray': '#C0C0C0',
+    'matte silver': '#B8B8B8',
+    'brushed silver': '#C8C8C8',
+    'oxidized silver': '#8A8A8A',
+    'platinum': '#E5E4E2',
+    'pewter': '#A8A8A0',
+    'bronze': '#CD7F32',
+    'brass': '#B5A642',
+    'copper': '#B87333',
+    'gunmetal': '#2C3539',
+    'chrome': '#D8D8D8',
+  };
+
+  // Exact match
+  if (metalMap[m]) return metalMap[m];
+
+  // Partial match
+  for (const [key, hex] of Object.entries(metalMap)) {
+    if (m.includes(key)) return hex;
+  }
+
+  // Fallback: use the general color map
+  return getColorHex(m) || '#C0C0C0';
+}
+
+// ============================================
+// ENHANCED COLOR MAP
+// ============================================
 // ============================================
 // ENHANCED COLOR MAP
 // ============================================
@@ -902,7 +951,7 @@ function getColorHex(color) {
   if (!color) return '#CCCCCC';
   
   const c = color.toLowerCase().trim();
-  
+
   // Comprehensive color map
   const colorMap = {
     // Reds & Pinks
@@ -1110,7 +1159,7 @@ function getColorHex(color) {
     'true winter': '#C8102E',
     'bright winter': '#E0115F',
   };
-  
+
   // Try exact match
   if (colorMap[c]) return colorMap[c];
   
@@ -1127,63 +1176,13 @@ function getColorHex(color) {
     if (colorMap[word]) return colorMap[word];
   }
   
-  // Generate consistent color from text
+  // Fallback: generate consistent color from text
   let hash = 0;
   for (let i = 0; i < c.length; i++) {
     hash = c.charCodeAt(i) + ((hash << 5) - hash);
   }
   const hue = Math.abs(hash) % 360;
   return `hsl(${hue}, 55%, 65%)`;
-}
-// ============================================
-// METAL COLOR MAP (for jewelry chips)
-// ============================================
-function getMetalColor(metal) {
-  if (!metal) return '#C0C0C0';
-
-  const m = metal.toLowerCase().trim();
-
-  const metalMap = {
-    'gold': '#FFD700',
-    'bright gold': '#FFDF00',
-    'yellow gold': '#FFD700',
-    'warm gold': '#D4A843',
-    'dusty gold': '#C4A86A',
-    'matte gold': '#D4B36A',
-    'brushed gold': '#D8B76A',
-    'antique gold': '#C4A050',
-    'gold with colored stones': '#E8C468',
-    'gold with turquoise or coral stones': '#E8C468',
-    'gold with light-colored stones': '#E8C468',
-    'rose gold': '#E8A2A2',
-    'soft rose gold': '#EFC0C0',
-    'white gold': '#E8E0D8',
-    'silver': '#C0C0C0',
-    'silver gray': '#C0C0C0',
-    'matte silver': '#B8B8B8',
-    'brushed silver': '#C8C8C8',
-    'oxidized silver': '#8A8A8A',
-    'platinum': '#E5E4E2',
-    'pewter': '#A8A8A0',
-    'bronze': '#CD7F32',
-    'brass': '#B5A642',
-    'copper': '#B87333',
-    'gunmetal': '#2C3539',
-    'chrome': '#D8D8D8',
-  };
-
-  // Exact match first
-  if (metalMap[m]) return metalMap[m];
-
-  // Partial match (handles phrases like "gold with colored stones"
-  // falling back to plain "gold" if an exact phrase isn't mapped)
-  for (const [key, hex] of Object.entries(metalMap)) {
-    if (m.includes(key)) return hex;
-  }
-
-  // Fall back to the general color map so an unrecognized metal name
-  // still gets a sensible dot instead of crashing
-  return getColorHex(color => color)(m) || getColorHex(m);
 }
 
 // ============================================
@@ -1473,24 +1472,25 @@ function renderColorPalette(data) {
   }
   
   // ── JEWELRY ──
-  if (jewelry && jewelry.length > 0) {
-    paletteHTML += `
-      <div class="color-section">
-        <div class="color-section-title">💍 Jewelry</div>
-        <div class="palette-row">
-          ${jewelry.map(j => {
-            const name = getItemName(j);
-            return `
-              <span class="palette-tag">
-                <span class="palette-dot" style="background:${getMetalColor(name)}"></span>
-                ${name}
-              </span>
-            `;
-          }).join('')}
-        </div>
+  // ── JEWELRY ──
+if (jewelry && jewelry.length > 0) {
+  paletteHTML += `
+    <div class="color-section">
+      <div class="color-section-title">💍 Jewelry</div>
+      <div class="palette-row">
+        ${jewelry.map(j => {
+          const name = getItemName(j);
+          return `
+            <span class="palette-tag">
+              <span class="palette-dot" style="background:${getMetalColor(name)}"></span>
+              ${name}
+            </span>
+          `;
+        }).join('')}
       </div>
-    `;
-  }
+    </div>
+  `;
+}
   
   // ── BEST PRIMARY COLORS ──
   const primaryColors = safeArray(bestColors.primary);
