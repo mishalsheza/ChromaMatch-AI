@@ -1,0 +1,1251 @@
+{
+  "_meta": {
+    "schema": "unified-v1",
+    "notes": [
+      "Single canonical season reference file. seasons is a DICT keyed by season name (matches season.py).",
+      "Each season entry contains BOTH the rich fields (skin_characteristics, best_clothing_colors, lipstick, blush, dress_occasions, hair_colors, eye_makeup, special_notes) AND backward-compatible convenience fields (label, profile, jewelry_simple, lipstick_family, blush_family).",
+      "groq_writer.py should read rich_season_data directly from classify_season()[\"raw_data\"] rather than re-loading/re-matching this file itself.",
+      "CRITICAL: Rules are matched top-to-bottom, first match wins. Specific rules MUST come before generic rules."
+    ]
+  },
+  "classification_rules": [
+    {
+      "if": {
+        "undertone": ["warm"],
+        "depth": ["light"],
+        "clarity": ["clear"]
+      },
+      "season": "bright_spring"
+    },
+    {
+      "if": {
+        "undertone": ["warm"],
+        "depth": ["medium"],
+        "contrast": ["high"],
+        "clarity": ["clear"]
+      },
+      "season": "bright_spring"
+    },
+    {
+      "if": {
+        "undertone": ["warm"],
+        "depth": ["light"]
+      },
+      "season": "light_spring"
+    },
+    {
+      "if": {
+        "undertone": ["warm"],
+        "depth": ["medium"]
+      },
+      "season": "true_spring"
+    },
+    {
+      "if": {
+        "undertone": ["cool"],
+        "depth": ["medium"],
+        "clarity": ["clear"],
+        "contrast": ["high"]
+      },
+      "season": "true_winter"
+    },
+    {
+      "if": {
+        "undertone": ["cool", "neutral_cool"],
+        "depth": ["light", "medium"],
+        "clarity": ["clear"],
+        "contrast": ["high"]
+      },
+      "season": "bright_winter"
+    },
+    {
+      "if": {
+        "undertone": ["cool", "neutral_cool"],
+        "depth": ["medium"],
+        "clarity": ["muted"],
+        "contrast": ["low"]
+      },
+      "season": "soft_summer"
+    },
+    {
+      "if": {
+        "undertone": ["cool"],
+        "depth": ["light"]
+      },
+      "season": "light_summer"
+    },
+    {
+      "if": {
+        "undertone": ["cool"],
+        "depth": ["medium"]
+      },
+      "season": "true_summer"
+    },
+    {
+      "if": {
+        "undertone": ["neutral_warm", "olive"],
+        "depth": ["medium"],
+        "clarity": ["muted"],
+        "contrast": ["low"]
+      },
+      "season": "soft_autumn"
+    },
+    {
+      "if": {
+        "undertone": ["warm", "olive"],
+        "depth": ["medium"],
+        "clarity": ["muted"]
+      },
+      "season": "true_autumn"
+    },
+    {
+      "if": {
+        "undertone": ["warm", "olive"],
+        "depth": ["deep"]
+      },
+      "season": "deep_autumn"
+    },
+    {
+      "if": {
+        "undertone": ["cool", "neutral_cool"],
+        "depth": ["deep"]
+      },
+      "season": "deep_winter"
+    },
+    {
+      "if": {},
+      "season": "true_summer",
+      "fallback": true
+    }
+  ],
+  "seasons": {
+    "bright_spring": {
+      "season": "bright_spring",
+      "skin_characteristics": {
+        "depth": "light_to_medium",
+        "undertone": "warm",
+        "clarity": "clear",
+        "contrast": "high",
+        "pigmentation_notes": "Skin is typically warm and clear rather than olive; pigmented lips are less common in this group but when present read as coral-red rather than brown-red. Hyperpigmentation, if any, sits close to skin tone and is easily balanced with warm coral concealer rather than deep correction."
+      },
+      "best_clothing_colors": {
+        "primary": ["warm coral", "true red", "grass green", "turquoise"],
+        "secondary": ["clear yellow", "hot pink", "royal blue", "bright orange"],
+        "avoid": ["dusty muted tones", "black", "beige", "gray"]
+      },
+      "worst_clothing_colors": ["muted mauve", "charcoal", "taupe", "dusty rose"],
+      "jewelry": {
+        "best": ["bright gold", "yellow gold", "gold with colored stones"],
+        "avoid": ["antiqued silver", "oxidized metals", "matte pewter"]
+      },
+      "lipstick": {
+        "best": [
+          {
+            "name": "Warm Coral",
+            "hex": "#FF6F61",
+            "description": "Clear, saturated coral with orange warmth"
+          },
+          {
+            "name": "Tangerine Red",
+            "hex": "#FF7F50",
+            "description": "Bright orange-red, high clarity"
+          },
+          {
+            "name": "Poppy Red",
+            "hex": "#E2493D",
+            "description": "Vivid warm red with no brown or blue cast"
+          }
+        ],
+        "avoid": ["Muted brick", "Cool berry", "Brown nude", "Dusty mauve"],
+        "pigmented_lips_note": "Naturally pigmented lips in this group should choose clear, saturated corals or warm reds rather than muted or brown-based shades, which flatten the natural brightness of the coloring."
+      },
+      "blush": {
+        "best": [
+          {
+            "name": "Peach Pop",
+            "hex": "#FFB07C",
+            "description": "Clear warm peach"
+          },
+          {
+            "name": "Coral Flush",
+            "hex": "#FF8C69",
+            "description": "Bright coral with warmth"
+          }
+        ],
+        "avoid": ["Cool mauve", "Deep plum", "Ashy pink"]
+      },
+      "dress_occasions": {
+        "casual": ["Coral top with white denim", "Turquoise sundress", "Grass green tee"],
+        "office": ["Warm red blazer", "Royal blue sheath dress", "Clear camel trousers"],
+        "evening": ["Emerald cocktail dress", "Hot pink gown", "Gold-accented red dress"],
+        "wedding_guest": ["Coral maxi dress", "Turquoise midi dress", "Bright fuchsia saree/dress"],
+        "summer_dresses": ["Yellow sundress", "Orange wrap dress", "Turquoise linen dress"]
+      },
+      "hair_colors": {
+        "best": ["Warm golden brown", "Strawberry blonde", "Copper", "Auburn"],
+        "avoid": ["Ash brown", "Cool black", "Platinum"],
+        "highlight_notes": "Golden and copper highlights amplify the natural warmth and clarity; avoid ashy or cool-toned dye jobs which flatten contrast."
+      },
+      "eye_makeup": {
+        "best": ["Warm bronze", "Turquoise", "Coral", "Grass green", "Gold"],
+        "avoid": ["Cool gray", "Mauve", "Silver frost", "Lavender"]
+      },
+      "special_notes": {
+        "pigmented_lips": "Choose clear warm coral or red-orange shades; steer clear of muted or brown-toned lipsticks that dull the natural brightness.",
+        "hyperpigmentation": "Correct with warm peach-toned concealer; avoid yellow or gray correctors that clash with the clear warm undertone.",
+        "olive_skin": "True Bright Spring olive is rare, but if warm-olive with high clarity, lean into clear jewel tones (turquoise, grass green) rather than muted earth tones."
+      },
+      "label": "Bright Spring",
+      "family": "spring",
+      "profile": {
+        "undertone": "warm",
+        "depth": "light_to_medium",
+        "clarity": "clear",
+        "contrast": "high"
+      },
+      "jewelry_simple": ["bright gold", "yellow gold", "gold with colored stones"],
+      "lipstick_family": {
+        "name": "Warm Coral",
+        "hexes": ["#FF6F61", "#FF7F50", "#E2493D"]
+      },
+      "blush_family": {
+        "name": "Peach Pop",
+        "hexes": ["#FFB07C", "#FF8C69"]
+      }
+    },
+    "true_spring": {
+      "season": "true_spring",
+      "skin_characteristics": {
+        "depth": "light_to_medium",
+        "undertone": "warm",
+        "clarity": "clear",
+        "contrast": "medium",
+        "pigmentation_notes": "Warm undertone with occasional light olive cast; pigmented lips lean coral-red rather than brown. Hyperpigmentation tends to be light golden-brown and responds well to warm correction."
+      },
+      "best_clothing_colors": {
+        "primary": ["tomato red", "warm coral", "golden yellow", "leaf green"],
+        "secondary": ["camel", "peach", "turquoise", "warm periwinkle"],
+        "avoid": ["cool jewel tones", "black", "gray", "icy pastels"]
+      },
+      "worst_clothing_colors": ["burgundy", "navy", "cool pink", "silver"],
+      "jewelry": {
+        "best": ["gold", "warm gold", "gold with turquoise or coral stones"],
+        "avoid": ["silver", "white gold", "platinum"]
+      },
+      "lipstick": {
+        "best": [
+          {
+            "name": "Tomato Red",
+            "hex": "#FF6347",
+            "description": "Warm clear red-orange"
+          },
+          {
+            "name": "Warm Apricot",
+            "hex": "#E9967A",
+            "description": "Soft warm coral-nude"
+          },
+          {
+            "name": "Terracotta Glow",
+            "hex": "#D2691E",
+            "description": "Earthy warm orange-brown"
+          }
+        ],
+        "avoid": ["Cool berry", "Blue-red", "Icy pink", "Ash mauve"],
+        "pigmented_lips_note": "For pigmented lips, warm coral-reds and terracotta shades keep the lips looking rich and natural; cool-toned or blue-based reds tend to look muddy against warm pigmentation."
+      },
+      "blush": {
+        "best": [
+          {
+            "name": "Peach Glow",
+            "hex": "#FFCBA4",
+            "description": "Warm soft peach"
+          },
+          {
+            "name": "Apricot Flush",
+            "hex": "#FFAB76",
+            "description": "Bright warm apricot"
+          }
+        ],
+        "avoid": ["Cool rose", "Plum", "Frosty pink"]
+      },
+      "dress_occasions": {
+        "casual": ["Yellow sundress", "Coral kurta", "Leaf green top with denim"],
+        "office": ["Camel trousers with cream blouse", "Warm periwinkle shirt dress"],
+        "evening": ["Tomato red gown", "Turquoise cocktail dress", "Gold sheath"],
+        "wedding_guest": ["Coral saree/lehenga", "Golden yellow dress", "Peach anarkali"],
+        "summer_dresses": ["Peach sundress", "Turquoise linen dress", "Warm coral maxi"]
+      },
+      "hair_colors": {
+        "best": ["Golden brown", "Honey blonde", "Warm auburn", "Chestnut"],
+        "avoid": ["Ash blonde", "Jet black", "Cool brown"],
+        "highlight_notes": "Honey and caramel highlights blend beautifully; avoid ash or platinum tones that fight the warm undertone."
+      },
+      "eye_makeup": {
+        "best": ["Warm bronze", "Olive", "Turquoise", "Peach", "Gold"],
+        "avoid": ["Cool taupe", "Silver", "Blue-toned gray"]
+      },
+      "special_notes": {
+        "pigmented_lips": "Warm coral and terracotta lipsticks work best; avoid cool berries and blue-reds which can look muddy on warm-toned pigmented lips.",
+        "hyperpigmentation": "Use warm peach or golden-toned concealers; avoid pink or lavender color correctors.",
+        "olive_skin": "A warm-olive True Spring should favor golden earth tones and clear warm brights over muted or cool shades."
+      },
+      "label": "True Spring",
+      "family": "spring",
+      "profile": {
+        "undertone": "warm",
+        "depth": "light_to_medium",
+        "clarity": "clear",
+        "contrast": "medium"
+      },
+      "jewelry_simple": ["gold", "warm gold", "gold with turquoise or coral stones"],
+      "lipstick_family": {
+        "name": "Tomato Red",
+        "hexes": ["#FF6347", "#E9967A", "#D2691E"]
+      },
+      "blush_family": {
+        "name": "Peach Glow",
+        "hexes": ["#FFCBA4", "#FFAB76"]
+      }
+    },
+    "light_spring": {
+      "season": "light_spring",
+      "skin_characteristics": {
+        "depth": "light",
+        "undertone": "warm",
+        "clarity": "soft_clear",
+        "contrast": "low_to_medium",
+        "pigmentation_notes": "Fair to light-medium warm skin; pigmented lips are usually soft coral-pink rather than deep brown. Hyperpigmentation is typically light and golden-toned."
+      },
+      "best_clothing_colors": {
+        "primary": ["peach", "light warm yellow", "soft coral", "aqua"],
+        "secondary": ["light camel", "mint", "warm ivory", "soft turquoise"],
+        "avoid": ["black", "dark burgundy", "deep navy", "harsh cool brights"]
+      },
+      "worst_clothing_colors": ["charcoal", "deep plum", "icy gray", "cool fuchsia"],
+      "jewelry": {
+        "best": ["light gold", "rose gold", "gold with light-colored stones"],
+        "avoid": ["oxidized silver", "gunmetal", "heavy platinum"]
+      },
+      "lipstick": {
+        "best": [
+          {
+            "name": "Peachy Pink",
+            "hex": "#FFB6A3",
+            "description": "Soft warm coral-pink"
+          },
+          {
+            "name": "Light Coral",
+            "hex": "#FFC1B6",
+            "description": "Airy warm coral with pink undertone"
+          },
+          {
+            "name": "Warm Nude",
+            "hex": "#E8A987",
+            "description": "Soft golden nude"
+          }
+        ],
+        "avoid": ["Deep brown", "Cool mauve", "Blackened red", "Icy pink"],
+        "pigmented_lips_note": "Pigmented lips should choose soft warm corals and peachy pinks; very deep or cool shades can look heavy against the light, soft coloring."
+      },
+      "blush": {
+        "best": [
+          {
+            "name": "Soft Peach",
+            "hex": "#FFDAB9",
+            "description": "Light warm peach"
+          },
+          {
+            "name": "Light Apricot",
+            "hex": "#FFCBA4",
+            "description": "Delicate warm apricot"
+          }
+        ],
+        "avoid": ["Deep berry", "Cool taupe", "Ashy pink"]
+      },
+      "dress_occasions": {
+        "casual": ["Peach top with light denim", "Mint sundress", "Soft coral tee"],
+        "office": ["Warm ivory blouse", "Light camel trousers"],
+        "evening": ["Soft coral gown", "Aqua cocktail dress"],
+        "wedding_guest": ["Peach lehenga", "Soft turquoise dress", "Light coral saree"],
+        "summer_dresses": ["Mint linen dress", "Peach sundress", "Warm ivory dress"]
+      },
+      "hair_colors": {
+        "best": ["Light golden brown", "Strawberry blonde", "Honey blonde"],
+        "avoid": ["Jet black", "Ash brown", "Cool platinum"],
+        "highlight_notes": "Soft golden or honey highlights keep things light without overwhelming the delicate coloring."
+      },
+      "eye_makeup": {
+        "best": ["Soft peach", "Light bronze", "Mint", "Warm taupe"],
+        "avoid": ["Black liner alone", "Cool gray smoke", "Deep plum"]
+      },
+      "special_notes": {
+        "pigmented_lips": "Favor soft warm coral or peachy pink lipsticks; deep or cool-toned shades overwhelm the light, soft coloring.",
+        "hyperpigmentation": "Light golden concealer works best; avoid heavy full-coverage correction which can look mask-like against fair, soft skin.",
+        "olive_skin": "A lighter warm-olive complexion in this group should stick to soft warm brights rather than deep or muted earth tones, which can look aging."
+      },
+      "label": "Light Spring",
+      "family": "spring",
+      "profile": {
+        "undertone": "warm",
+        "depth": "light",
+        "clarity": "soft_clear",
+        "contrast": "low_to_medium"
+      },
+      "jewelry_simple": ["light gold", "rose gold", "gold with light-colored stones"],
+      "lipstick_family": {
+        "name": "Peachy Pink",
+        "hexes": ["#FFB6A3", "#FFC1B6", "#E8A987"]
+      },
+      "blush_family": {
+        "name": "Soft Peach",
+        "hexes": ["#FFDAB9", "#FFCBA4"]
+      }
+    },
+    "light_summer": {
+      "season": "light_summer",
+      "skin_characteristics": {
+        "depth": "light",
+        "undertone": "cool",
+        "clarity": "soft",
+        "contrast": "low",
+        "pigmentation_notes": "Fair cool-toned skin; pigmented lips tend toward soft rose or berry-pink rather than orange-brown. Hyperpigmentation is usually pink or reddish rather than golden."
+      },
+      "best_clothing_colors": {
+        "primary": ["soft blue", "lavender", "dusty rose", "powder pink"],
+        "secondary": ["soft gray", "light mauve", "seafoam", "periwinkle"],
+        "avoid": ["orange", "mustard", "rust", "warm brown"]
+      },
+      "worst_clothing_colors": ["orange", "olive green", "warm gold", "tomato red"],
+      "jewelry": {
+        "best": ["silver", "white gold", "soft rose gold"],
+        "avoid": ["yellow gold", "brass", "copper"]
+      },
+      "lipstick": {
+        "best": [
+          {
+            "name": "Soft Pink",
+            "hex": "#E8A0BF",
+            "description": "Cool soft pink"
+          },
+          {
+            "name": "Rose Mauve",
+            "hex": "#D8A7B1",
+            "description": "Muted cool rose"
+          },
+          {
+            "name": "Petal Pink",
+            "hex": "#EFB6C8",
+            "description": "Light cool pink"
+          }
+        ],
+        "avoid": ["Orange-red", "Terracotta", "Warm brown nude", "Bright coral"],
+        "pigmented_lips_note": "Cool soft pinks and rose-mauves flatter naturally pigmented lips here; warm orange-based shades tend to clash and look muddy."
+      },
+      "blush": {
+        "best": [
+          {
+            "name": "Soft Pink",
+            "hex": "#F4C2C2",
+            "description": "Light cool pink"
+          },
+          {
+            "name": "Rose Petal",
+            "hex": "#E8B4B8",
+            "description": "Delicate cool rose"
+          }
+        ],
+        "avoid": ["Bronze", "Warm coral", "Deep terracotta"]
+      },
+      "dress_occasions": {
+        "casual": ["Powder pink top with light denim", "Lavender sundress", "Seafoam tee"],
+        "office": ["Soft gray blazer", "Periwinkle blouse"],
+        "evening": ["Dusty rose gown", "Soft blue cocktail dress"],
+        "wedding_guest": ["Lavender lehenga", "Powder pink saree", "Soft blue dress"],
+        "summer_dresses": ["Seafoam linen dress", "Light mauve sundress", "Powder blue dress"]
+      },
+      "hair_colors": {
+        "best": ["Ash brown", "Cool light brown", "Soft cool blonde"],
+        "avoid": ["Warm copper", "Golden blonde", "Brassy tones"],
+        "highlight_notes": "Cool beige or ash highlights blend seamlessly; avoid golden or copper tones which clash with the cool undertone."
+      },
+      "eye_makeup": {
+        "best": ["Soft gray", "Lavender", "Cool taupe", "Dusty blue"],
+        "avoid": ["Warm bronze", "Orange", "Gold shimmer"]
+      },
+      "special_notes": {
+        "pigmented_lips": "Cool-toned rose and soft pink lipsticks work best; warm orange or terracotta shades tend to look muddy against cool pigmented lips.",
+        "hyperpigmentation": "Use a cool-pink-based concealer; warm golden correctors can look orange against fair cool skin.",
+        "olive_skin": "True olive is uncommon in this group; if present, it usually leans cool-neutral and pairs best with soft cool pastels rather than warm earth tones."
+      },
+      "label": "Light Summer",
+      "family": "summer",
+      "profile": {
+        "undertone": "cool",
+        "depth": "light",
+        "clarity": "soft",
+        "contrast": "low"
+      },
+      "jewelry_simple": ["silver", "white gold", "soft rose gold"],
+      "lipstick_family": {
+        "name": "Soft Pink",
+        "hexes": ["#E8A0BF", "#D8A7B1", "#EFB6C8"]
+      },
+      "blush_family": {
+        "name": "Soft Pink",
+        "hexes": ["#F4C2C2", "#E8B4B8"]
+      }
+    },
+    "true_summer": {
+      "season": "true_summer",
+      "skin_characteristics": {
+        "depth": "light_to_medium",
+        "undertone": "cool",
+        "clarity": "muted",
+        "contrast": "medium",
+        "pigmentation_notes": "Cool-toned skin with muted quality; pigmented lips read as berry or mauve-pink. Hyperpigmentation tends to be pinkish-brown rather than golden."
+      },
+      "best_clothing_colors": {
+        "primary": ["soft navy", "rose pink", "slate blue", "raspberry"],
+        "secondary": ["lavender", "soft teal", "gray", "plum"],
+        "avoid": ["orange", "warm gold", "bright yellow", "rust"]
+      },
+      "worst_clothing_colors": ["mustard", "orange", "warm brown", "gold lame"],
+      "jewelry": {
+        "best": ["silver", "platinum", "white gold"],
+        "avoid": ["yellow gold", "brass", "antique gold"]
+      },
+      "lipstick": {
+        "best": [
+          {
+            "name": "Rose Pink",
+            "hex": "#C08497",
+            "description": "Cool muted rose"
+          },
+          {
+            "name": "Berry Mauve",
+            "hex": "#B76E79",
+            "description": "Deep cool mauve-berry"
+          },
+          {
+            "name": "Muted Raspberry",
+            "hex": "#A85C6B",
+            "description": "Soft cool raspberry"
+          }
+        ],
+        "avoid": ["Orange-red", "Warm brick", "Terracotta", "Golden nude"],
+        "pigmented_lips_note": "Cool berry and mauve tones work with naturally pigmented lips; warm brick or orange-based shades can look dull and mismatched."
+      },
+      "blush": {
+        "best": [
+          {
+            "name": "Rose",
+            "hex": "#E0B0B8",
+            "description": "Cool soft rose"
+          },
+          {
+            "name": "Cool Pink",
+            "hex": "#D8A0A8",
+            "description": "Muted cool pink"
+          }
+        ],
+        "avoid": ["Bronze", "Peach", "Warm terracotta"]
+      },
+      "dress_occasions": {
+        "casual": ["Slate blue top with denim", "Rose pink sundress", "Gray tee"],
+        "office": ["Soft navy blazer", "Plum blouse"],
+        "evening": ["Raspberry gown", "Slate blue cocktail dress"],
+        "wedding_guest": ["Plum lehenga", "Rose pink saree", "Lavender dress"],
+        "summer_dresses": ["Soft teal linen dress", "Lavender sundress", "Rose pink dress"]
+      },
+      "hair_colors": {
+        "best": ["Cool ash brown", "Cool medium brown", "Silver-toned gray"],
+        "avoid": ["Warm copper", "Golden brown", "Brassy blonde"],
+        "highlight_notes": "Cool-toned lowlights and ash highlights suit this group; avoid warm caramel or golden tones."
+      },
+      "eye_makeup": {
+        "best": ["Cool taupe", "Plum", "Slate blue", "Gray"],
+        "avoid": ["Warm bronze", "Gold", "Orange-brown"]
+      },
+      "special_notes": {
+        "pigmented_lips": "Cool berry, mauve, and rose-toned lipsticks flatter naturally pigmented lips; warm brick or orange shades tend to clash.",
+        "hyperpigmentation": "A cool pink-toned concealer corrects best; avoid warm golden or orange correctors.",
+        "olive_skin": "Cool-leaning olive in this group should favor muted cool jewel tones (plum, slate blue) over warm earthy colors."
+      },
+      "label": "True Summer",
+      "family": "summer",
+      "profile": {
+        "undertone": "cool",
+        "depth": "light_to_medium",
+        "clarity": "muted",
+        "contrast": "medium"
+      },
+      "jewelry_simple": ["silver", "platinum", "white gold"],
+      "lipstick_family": {
+        "name": "Rose Pink",
+        "hexes": ["#C08497", "#B76E79", "#A85C6B"]
+      },
+      "blush_family": {
+        "name": "Rose",
+        "hexes": ["#E0B0B8", "#D8A0A8"]
+      }
+    },
+    "soft_summer": {
+      "season": "soft_summer",
+      "skin_characteristics": {
+        "depth": "medium",
+        "undertone": "neutral_cool",
+        "clarity": "muted",
+        "contrast": "low",
+        "pigmentation_notes": "Neutral-cool, muted skin tone; pigmented lips read as dusty rose or muted mauve. Hyperpigmentation is soft and grayish-brown rather than golden."
+      },
+      "best_clothing_colors": {
+        "primary": ["dusty rose", "soft teal", "mauve", "grayed navy"],
+        "secondary": ["soft plum", "sage green", "dove gray", "muted lavender"],
+        "avoid": ["neon", "bright orange", "pure white", "jet black"]
+      },
+      "worst_clothing_colors": ["neon orange", "bright yellow", "pure black", "hot pink"],
+      "jewelry": {
+        "best": ["brushed silver", "matte silver", "pewter"],
+        "avoid": ["bright yellow gold", "shiny brass"]
+      },
+      "lipstick": {
+        "best": [
+          {
+            "name": "Muted Mauve",
+            "hex": "#C48A94",
+            "description": "Soft dusty mauve"
+          },
+          {
+            "name": "Dusty Rose",
+            "hex": "#B08D93",
+            "description": "Muted cool-neutral rose"
+          },
+          {
+            "name": "Soft Berry",
+            "hex": "#A67B85",
+            "description": "Gentle muted berry"
+          }
+        ],
+        "avoid": ["Bright orange-red", "Clear coral", "Warm brick", "Vivid fuchsia"],
+        "pigmented_lips_note": "Muted mauve and dusty rose shades blend naturally with pigmented lips in this group; overly bright or clear shades look jarring against the soft, muted coloring."
+      },
+      "blush": {
+        "best": [
+          {
+            "name": "Dusty Rose",
+            "hex": "#C79EA6",
+            "description": "Muted cool-neutral rose"
+          },
+          {
+            "name": "Muted Mauve",
+            "hex": "#B98C8C",
+            "description": "Soft grayed mauve"
+          }
+        ],
+        "avoid": ["Bright coral", "Vivid pink", "Warm bronze"]
+      },
+      "dress_occasions": {
+        "casual": ["Sage green top with jeans", "Dusty rose sundress", "Dove gray tee"],
+        "office": ["Grayed navy blazer", "Soft plum blouse"],
+        "evening": ["Muted teal gown", "Dusty rose cocktail dress"],
+        "wedding_guest": ["Soft plum lehenga", "Mauve saree", "Sage green dress"],
+        "summer_dresses": ["Muted lavender sundress", "Dove gray linen dress", "Dusty rose dress"]
+      },
+      "hair_colors": {
+        "best": ["Cool ash brown", "Muted taupe brown", "Soft cool blonde"],
+        "avoid": ["Warm copper", "Brassy gold", "Jet black"],
+        "highlight_notes": "Soft, low-contrast ash or taupe highlights work best; avoid high-shine warm tones."
+      },
+      "eye_makeup": {
+        "best": ["Muted taupe", "Soft plum", "Sage", "Dove gray"],
+        "avoid": ["Bright gold", "Vivid orange", "Neon shades"]
+      },
+      "special_notes": {
+        "pigmented_lips": "Opt for muted mauve or dusty rose lipsticks; bright, clear, or warm shades will look out of place against the soft, low-contrast coloring.",
+        "hyperpigmentation": "A soft neutral concealer with minimal warmth works best; avoid strongly golden correctors.",
+        "olive_skin": "A muted neutral-olive complexion here should lean into grayed, dusty tones rather than bright or heavily warm colors."
+      },
+      "label": "Soft Summer",
+      "family": "summer",
+      "profile": {
+        "undertone": "neutral_cool",
+        "depth": "medium",
+        "clarity": "muted",
+        "contrast": "low"
+      },
+      "jewelry_simple": ["brushed silver", "matte silver", "pewter"],
+      "lipstick_family": {
+        "name": "Muted Mauve",
+        "hexes": ["#C48A94", "#B08D93", "#A67B85"]
+      },
+      "blush_family": {
+        "name": "Dusty Rose",
+        "hexes": ["#C79EA6", "#B98C8C"]
+      }
+    },
+    "soft_autumn": {
+      "season": "soft_autumn",
+      "skin_characteristics": {
+        "depth": "medium",
+        "undertone": "neutral_warm",
+        "clarity": "muted",
+        "contrast": "low",
+        "pigmentation_notes": "Soft warm-neutral undertone, often with a light olive cast; pigmented lips read as muted terracotta or soft brick. Hyperpigmentation tends to be soft brownish and blends easily with warm-neutral correction."
+      },
+      "best_clothing_colors": {
+        "primary": ["sage green", "soft terracotta", "camel", "muted teal"],
+        "secondary": ["dusty gold", "soft olive", "warm taupe", "muted coral"],
+        "avoid": ["bright neon", "stark black", "icy pastels", "pure white"]
+      },
+      "worst_clothing_colors": ["neon pink", "jet black", "icy blue", "bright fuchsia"],
+      "jewelry": {
+        "best": ["matte gold", "brushed gold", "bronze"],
+        "avoid": ["shiny silver", "platinum", "chrome"]
+      },
+      "lipstick": {
+        "best": [
+          {
+            "name": "Muted Terracotta",
+            "hex": "#C97B5B",
+            "description": "Soft warm terracotta"
+          },
+          {
+            "name": "Soft Brick",
+            "hex": "#B5675A",
+            "description": "Muted brick-red"
+          },
+          {
+            "name": "Warm Rosewood",
+            "hex": "#A9705F",
+            "description": "Muted warm rose-brown"
+          }
+        ],
+        "avoid": ["Bright fuchsia", "Icy pink", "Blue-red", "Frosty mauve"],
+        "pigmented_lips_note": "Muted terracotta and soft brick tones flatter naturally pigmented lips; overly bright or cool-toned shades look harsh against the soft warm coloring."
+      },
+      "blush": {
+        "best": [
+          {
+            "name": "Soft Terracotta",
+            "hex": "#D8A87D",
+            "description": "Muted warm peach-terracotta"
+          },
+          {
+            "name": "Muted Peach",
+            "hex": "#C99A7B",
+            "description": "Soft warm peach"
+          }
+        ],
+        "avoid": ["Bright pink", "Cool mauve", "Frosty rose"]
+      },
+      "dress_occasions": {
+        "casual": ["Sage green top with jeans", "Camel sundress", "Muted teal tee"],
+        "office": ["Warm taupe blazer", "Soft olive trousers"],
+        "evening": ["Muted teal gown", "Soft terracotta cocktail dress"],
+        "wedding_guest": ["Camel lehenga", "Dusty gold saree", "Sage green dress"],
+        "summer_dresses": ["Muted coral sundress", "Warm taupe linen dress", "Soft olive dress"]
+      },
+      "hair_colors": {
+        "best": ["Soft warm brown", "Muted caramel", "Warm taupe brown"],
+        "avoid": ["Jet black", "Cool ash blonde", "Bright copper"],
+        "highlight_notes": "Soft caramel or honey-brown highlights blend well; avoid high-contrast platinum or jet-black dye."
+      },
+      "eye_makeup": {
+        "best": ["Warm taupe", "Sage", "Soft bronze", "Muted olive"],
+        "avoid": ["Bright silver", "Cool blue", "Vivid fuchsia"]
+      },
+      "special_notes": {
+        "pigmented_lips": "Muted terracotta or soft brick lipsticks work best; bright or cool-toned shades clash with the soft warm-neutral coloring.",
+        "hyperpigmentation": "A warm-neutral concealer with light coverage blends naturally; heavy correction can look cakey on soft, muted skin.",
+        "olive_skin": "This season is one of the most common homes for olive-toned Indian skin \u2014 lean into muted earth tones (sage, camel, soft terracotta) rather than bright jewel tones or icy pastels, which tend to clash with olive's green-gold cast."
+      },
+      "label": "Soft Autumn",
+      "family": "autumn",
+      "profile": {
+        "undertone": "neutral_warm",
+        "depth": "medium",
+        "clarity": "muted",
+        "contrast": "low"
+      },
+      "jewelry_simple": ["matte gold", "brushed gold", "bronze"],
+      "lipstick_family": {
+        "name": "Muted Terracotta",
+        "hexes": ["#C97B5B", "#B5675A", "#A9705F"]
+      },
+      "blush_family": {
+        "name": "Soft Terracotta",
+        "hexes": ["#D8A87D", "#C99A7B"]
+      }
+    },
+    "true_autumn": {
+      "season": "true_autumn",
+      "skin_characteristics": {
+        "depth": "medium",
+        "undertone": "warm",
+        "clarity": "muted",
+        "contrast": "medium",
+        "pigmentation_notes": "Warm, often olive-leaning skin; pigmented lips read as warm brick-red or terracotta. Hyperpigmentation is typically warm brown and responds well to golden-toned correction."
+      },
+      "best_clothing_colors": {
+        "primary": ["rust", "olive green", "pumpkin", "chocolate brown"],
+        "secondary": ["mustard", "warm teal", "burnt orange", "camel"],
+        "avoid": ["icy pastels", "cool pink", "silver-gray", "pure black"]
+      },
+      "worst_clothing_colors": ["icy blue", "cool pink", "silver", "black"],
+      "jewelry": {
+        "best": ["gold", "antique gold", "bronze"],
+        "avoid": ["silver", "platinum", "white gold"]
+      },
+      "lipstick": {
+        "best": [
+          {
+            "name": "Brick Red",
+            "hex": "#B7410E",
+            "description": "Warm muted brick red"
+          },
+          {
+            "name": "Warm Terracotta",
+            "hex": "#C1440E",
+            "description": "Rich warm orange-brown"
+          },
+          {
+            "name": "Burnt Sienna",
+            "hex": "#A0522D",
+            "description": "Deep warm earthy red-brown"
+          }
+        ],
+        "avoid": ["Cool pink", "Icy mauve", "Blue-red", "Frosty nude"],
+        "pigmented_lips_note": "Warm brick and terracotta shades enhance naturally pigmented lips beautifully; cool pinks and icy tones tend to look ashy against the warm undertone."
+      },
+      "blush": {
+        "best": [
+          {
+            "name": "Terracotta",
+            "hex": "#CC7351",
+            "description": "Warm muted terracotta"
+          },
+          {
+            "name": "Warm Bronze",
+            "hex": "#C67B5C",
+            "description": "Earthy warm bronze"
+          }
+        ],
+        "avoid": ["Cool pink", "Frosty rose", "Icy mauve"]
+      },
+      "dress_occasions": {
+        "casual": ["Olive green top with jeans", "Rust sundress", "Camel tee"],
+        "office": ["Chocolate brown blazer", "Mustard blouse"],
+        "evening": ["Burnt orange gown", "Warm teal cocktail dress"],
+        "wedding_guest": ["Rust lehenga", "Mustard saree", "Olive green dress"],
+        "summer_dresses": ["Pumpkin sundress", "Camel linen dress", "Warm teal dress"]
+      },
+      "hair_colors": {
+        "best": ["Warm chestnut", "Auburn", "Copper brown", "Chocolate brown"],
+        "avoid": ["Ash blonde", "Jet black", "Platinum"],
+        "highlight_notes": "Copper and caramel highlights add richness; avoid ashy or cool-toned dye which fights the warm undertone."
+      },
+      "eye_makeup": {
+        "best": ["Warm bronze", "Olive", "Rust", "Burnt orange", "Gold"],
+        "avoid": ["Cool silver", "Icy blue", "Lavender"]
+      },
+      "special_notes": {
+        "pigmented_lips": "Warm brick and terracotta lipsticks work best; cool pinks and icy tones can look mismatched against naturally warm-pigmented lips.",
+        "hyperpigmentation": "Golden or warm-brown concealer blends most naturally; avoid pink or lavender correctors which look chalky on warm-olive skin.",
+        "olive_skin": "A common season for warm-olive Indian skin \u2014 earthy jewel tones (rust, olive, chocolate) and gold jewelry are the most flattering; icy or silver-toned looks tend to wash the skin out."
+      },
+      "label": "True Autumn",
+      "family": "autumn",
+      "profile": {
+        "undertone": "warm",
+        "depth": "medium",
+        "clarity": "muted",
+        "contrast": "medium"
+      },
+      "jewelry_simple": ["gold", "antique gold", "bronze"],
+      "lipstick_family": {
+        "name": "Brick Red",
+        "hexes": ["#B7410E", "#C1440E", "#A0522D"]
+      },
+      "blush_family": {
+        "name": "Terracotta",
+        "hexes": ["#CC7351", "#C67B5C"]
+      }
+    },
+    "deep_autumn": {
+      "season": "deep_autumn",
+      "skin_characteristics": {
+        "depth": "deep",
+        "undertone": "warm/olive",
+        "clarity": "muted_rich",
+        "contrast": "medium_to_high",
+        "pigmentation_notes": "Often has pigmented lips, may have hyperpigmentation around mouth/eyes. Deep warm-olive skin holds rich, saturated earth tones exceptionally well."
+      },
+      "best_clothing_colors": {
+        "primary": ["burgundy", "forest green", "deep teal", "chocolate brown"],
+        "secondary": ["mustard", "olive", "rust", "cream"],
+        "avoid": ["pastels", "neon", "icy blues", "light gray"]
+      },
+      "worst_clothing_colors": ["pastel pink", "baby blue", "silver", "fuchsia"],
+      "jewelry": {
+        "best": ["gold", "bronze", "copper", "antique gold"],
+        "avoid": ["silver", "platinum", "white gold"]
+      },
+      "lipstick": {
+        "best": [
+          {
+            "name": "Deep Brick",
+            "hex": "#8B3A2B",
+            "description": "Rich warm brown-red, perfect for pigmented lips"
+          },
+          {
+            "name": "Mahogany",
+            "hex": "#9A3324",
+            "description": "Deep warm brown with red undertones"
+          },
+          {
+            "name": "Terracotta",
+            "hex": "#C1440E",
+            "description": "Warm orange-brown, flattering on olive skin"
+          }
+        ],
+        "avoid": ["Cool pinks", "Fuchsia", "Icy pink", "Mauve"],
+        "pigmented_lips_note": "Pigmented lips should opt for deeper, richer shades that don't wash out. Avoid pale nudes and cool pinks."
+      },
+      "blush": {
+        "best": [
+          {
+            "name": "Deep Terracotta",
+            "hex": "#A85C4D",
+            "description": "Warm brownish-orange"
+          },
+          {
+            "name": "Brick Rose",
+            "hex": "#9C5A45",
+            "description": "Warm muted rose"
+          }
+        ],
+        "avoid": ["Cool pinks", "Frosty shades", "Bright coral"]
+      },
+      "dress_occasions": {
+        "casual": ["Olive green", "Rust", "Chocolate brown", "Warm cream"],
+        "office": ["Burgundy", "Deep teal", "Charcoal", "Navy"],
+        "evening": ["Gold", "Deep red", "Emerald", "Black"],
+        "wedding_guest": ["Burgundy", "Mustard", "Forest green", "Gold"],
+        "summer_dresses": ["Mustard", "Olive", "Terracotta", "Warm white"]
+      },
+      "hair_colors": {
+        "best": ["Cinnamon", "Espresso", "Dark Cherry", "Warm Chocolate"],
+        "avoid": ["Ash brown", "Platinum", "Cool blonde"],
+        "highlight_notes": "Caramel and honey highlights add warmth"
+      },
+      "eye_makeup": {
+        "best": ["Warm browns", "Burgundy", "Olive green", "Bronze", "Gold"],
+        "avoid": ["Silver", "Cool blues", "Gray", "Lavender"]
+      },
+      "special_notes": {
+        "pigmented_lips": "Recommended lipsticks: Deep Brick, Mahogany, Burgundy. Avoid pale nudes and cool pinks.",
+        "hyperpigmentation": "Avoid colors that emphasize darkness around mouth/eyes. Stick to warm, rich tones.",
+        "olive_skin": "Olive undertones look best in earthy, jewel-toned colors. Avoid pastels and cool colors."
+      },
+      "label": "Deep Autumn",
+      "family": "autumn",
+      "profile": {
+        "undertone": "warm/olive",
+        "depth": "deep",
+        "clarity": "muted_rich",
+        "contrast": "medium_to_high"
+      },
+      "jewelry_simple": ["gold", "bronze", "copper", "antique gold"],
+      "lipstick_family": {
+        "name": "Deep Brick",
+        "hexes": ["#8B3A2B", "#9A3324", "#C1440E"]
+      },
+      "blush_family": {
+        "name": "Deep Terracotta",
+        "hexes": ["#A85C4D", "#9C5A45"]
+      }
+    },
+    "deep_winter": {
+      "season": "deep_winter",
+      "skin_characteristics": {
+        "depth": "deep",
+        "undertone": "neutral_cool",
+        "clarity": "clear_rich",
+        "contrast": "high",
+        "pigmentation_notes": "Deep, high-contrast skin, occasionally with an olive-cool undercurrent common in South Asian skin. Pigmented lips read as deep wine or blue-red. Hyperpigmentation tends to be cool-toned brown."
+      },
+      "best_clothing_colors": {
+        "primary": ["true red", "emerald", "royal blue", "black"],
+        "secondary": ["deep magenta", "icy white", "charcoal", "sapphire"],
+        "avoid": ["muted earth tones", "mustard", "peach", "beige"]
+      },
+      "worst_clothing_colors": ["mustard", "peach", "camel", "warm orange"],
+      "jewelry": {
+        "best": ["silver", "white gold", "platinum"],
+        "avoid": ["antique gold", "brass", "copper"]
+      },
+      "lipstick": {
+        "best": [
+          {
+            "name": "Deep Wine",
+            "hex": "#7B1E3A",
+            "description": "Rich cool berry-wine, excellent for deep pigmented lips"
+          },
+          {
+            "name": "Blue Red",
+            "hex": "#8A2140",
+            "description": "Cool-toned deep red"
+          },
+          {
+            "name": "True Red",
+            "hex": "#C8102E",
+            "description": "Vivid clear red with blue undertone"
+          }
+        ],
+        "avoid": ["Warm orange-red", "Terracotta", "Peachy nude", "Warm brown"],
+        "pigmented_lips_note": "Deep pigmented lips look richest in deep wine, blue-red, or true red; warm orange-based shades tend to flatten the natural depth and look muddy."
+      },
+      "blush": {
+        "best": [
+          {
+            "name": "Deep Berry",
+            "hex": "#8E4A5A",
+            "description": "Rich cool berry"
+          },
+          {
+            "name": "Plum Flush",
+            "hex": "#7A3E4C",
+            "description": "Deep cool plum"
+          }
+        ],
+        "avoid": ["Warm peach", "Bronze", "Terracotta"]
+      },
+      "dress_occasions": {
+        "casual": ["Royal blue top with black jeans", "Emerald tee", "Charcoal sweater"],
+        "office": ["Black blazer with white shirt", "Sapphire dress"],
+        "evening": ["Emerald gown", "True red cocktail dress", "Black and silver"],
+        "wedding_guest": ["Deep magenta lehenga", "Emerald saree", "Royal blue dress"],
+        "summer_dresses": ["Icy white linen dress", "Sapphire sundress", "True red dress"]
+      },
+      "hair_colors": {
+        "best": ["Jet black", "Deep cool brown", "Espresso"],
+        "avoid": ["Warm copper", "Golden blonde", "Brassy tones"],
+        "highlight_notes": "Cool-toned, subtle highlights (if any) keep the high natural contrast intact; avoid warm caramel tones."
+      },
+      "eye_makeup": {
+        "best": ["Charcoal", "Deep plum", "Sapphire", "Emerald", "Silver"],
+        "avoid": ["Warm bronze", "Peach", "Golden brown"]
+      },
+      "special_notes": {
+        "pigmented_lips": "Deep wine, blue-red, and true red lipsticks bring out the richness of naturally pigmented lips; warm orange-toned shades tend to look muddy.",
+        "hyperpigmentation": "A cool-toned deep concealer works best; warm golden correctors can look orange against deep cool-neutral skin.",
+        "olive_skin": "Deep-olive skin with cool undertones (common in South Asian coloring) suits jewel tones like emerald, sapphire, and true red far better than warm earth tones or mustard, which tend to look sallow."
+      },
+      "label": "Deep Winter",
+      "family": "winter",
+      "profile": {
+        "undertone": "neutral_cool",
+        "depth": "deep",
+        "clarity": "clear_rich",
+        "contrast": "high"
+      },
+      "jewelry_simple": ["silver", "white gold", "platinum"],
+      "lipstick_family": {
+        "name": "Deep Wine",
+        "hexes": ["#7B1E3A", "#8A2140", "#C8102E"]
+      },
+      "blush_family": {
+        "name": "Deep Berry",
+        "hexes": ["#8E4A5A", "#7A3E4C"]
+      }
+    },
+    "true_winter": {
+      "season": "true_winter",
+      "skin_characteristics": {
+        "depth": "medium_to_deep",
+        "undertone": "cool",
+        "clarity": "clear",
+        "contrast": "high",
+        "pigmentation_notes": "Cool, clear, high-contrast skin; pigmented lips read as blue-red or fuchsia. Hyperpigmentation tends toward cool grayish-brown."
+      },
+      "best_clothing_colors": {
+        "primary": ["true red", "black", "icy blue", "emerald"],
+        "secondary": ["fuchsia", "royal purple", "pure white", "sapphire"],
+        "avoid": ["muted earth tones", "orange", "warm gold", "beige"]
+      },
+      "worst_clothing_colors": ["orange", "mustard", "warm brown", "peach"],
+      "jewelry": {
+        "best": ["silver", "platinum", "white gold"],
+        "avoid": ["yellow gold", "brass", "antique gold"]
+      },
+      "lipstick": {
+        "best": [
+          {
+            "name": "True Red",
+            "hex": "#C8102E",
+            "description": "Vivid clear cool red"
+          },
+          {
+            "name": "Blue Red",
+            "hex": "#D0104A",
+            "description": "Cool blue-based red"
+          },
+          {
+            "name": "Fuchsia",
+            "hex": "#C71585",
+            "description": "Bright cool pink-red"
+          }
+        ],
+        "avoid": ["Orange-red", "Warm terracotta", "Peachy nude", "Brown-toned lipstick"],
+        "pigmented_lips_note": "True Winter's naturally pigmented lips shine in vivid cool reds and fuchsias; warm orange-based shades tend to look dull and mismatched."
+      },
+      "blush": {
+        "best": [
+          {
+            "name": "Cool Pink",
+            "hex": "#E390A0",
+            "description": "Clear cool pink"
+          },
+          {
+            "name": "Icy Rose",
+            "hex": "#D998A8",
+            "description": "Bright cool rose"
+          }
+        ],
+        "avoid": ["Warm peach", "Bronze", "Terracotta"]
+      },
+      "dress_occasions": {
+        "casual": ["Icy blue top with black jeans", "Emerald tee", "White shirt"],
+        "office": ["Black blazer", "Sapphire dress", "Royal purple blouse"],
+        "evening": ["True red gown", "Fuchsia cocktail dress", "Emerald evening dress"],
+        "wedding_guest": ["Royal purple lehenga", "Fuchsia saree", "Emerald dress"],
+        "summer_dresses": ["Pure white linen dress", "Icy blue sundress", "Fuchsia dress"]
+      },
+      "hair_colors": {
+        "best": ["Cool black", "Cool dark brown", "Cool medium brown"],
+        "avoid": ["Warm copper", "Golden brown", "Brassy blonde"],
+        "highlight_notes": "Cool ash tones or none at all preserve the natural high contrast; avoid warm caramel or golden highlights."
+      },
+      "eye_makeup": {
+        "best": ["Icy blue", "Emerald", "Cool gray", "Fuchsia", "Silver"],
+        "avoid": ["Warm bronze", "Gold", "Peach"]
+      },
+      "special_notes": {
+        "pigmented_lips": "Vivid cool reds and fuchsias suit naturally pigmented lips best; warm orange or brown-toned shades tend to look dull.",
+        "hyperpigmentation": "A cool-toned concealer with clear coverage works best; warm golden correctors can look orange against cool-clear skin.",
+        "olive_skin": "True olive is less common here; when present with a cool cast, favor clear jewel tones over muted or warm earthy colors."
+      },
+      "label": "True Winter",
+      "family": "winter",
+      "profile": {
+        "undertone": "cool",
+        "depth": "medium_to_deep",
+        "clarity": "clear",
+        "contrast": "high"
+      },
+      "jewelry_simple": ["silver", "platinum", "white gold"],
+      "lipstick_family": {
+        "name": "True Red",
+        "hexes": ["#C8102E", "#D0104A", "#C71585"]
+      },
+      "blush_family": {
+        "name": "Cool Pink",
+        "hexes": ["#E390A0", "#D998A8"]
+      }
+    },
+    "bright_winter": {
+      "season": "bright_winter",
+      "skin_characteristics": {
+        "depth": "light_to_medium",
+        "undertone": "neutral_cool",
+        "clarity": "vivid_icy",
+        "contrast": "high",
+        "pigmentation_notes": "Clear, high-contrast cool-neutral skin; pigmented lips read as fuchsia or icy red. Hyperpigmentation tends to be pink-brown and responds to cool-neutral correction."
+      },
+      "best_clothing_colors": {
+        "primary": ["fuchsia", "icy red", "emerald", "royal blue"],
+        "secondary": ["black", "pure white", "hot pink", "cobalt"],
+        "avoid": ["muted earth tones", "mustard", "dusty pastels", "warm brown"]
+      },
+      "worst_clothing_colors": ["mustard", "dusty rose", "warm beige", "olive"],
+      "jewelry": {
+        "best": ["silver", "white gold", "platinum"],
+        "avoid": ["antique gold", "brass", "matte bronze"]
+      },
+      "lipstick": {
+        "best": [
+          {
+            "name": "Fuchsia",
+            "hex": "#E0115F",
+            "description": "Vivid cool-bright pink-red"
+          },
+          {
+            "name": "Icy Red",
+            "hex": "#FF0090",
+            "description": "Bright cool pink-red"
+          },
+          {
+            "name": "Bright Berry",
+            "hex": "#D6006D",
+            "description": "Clear vivid berry"
+          }
+        ],
+        "avoid": ["Muted brick", "Warm terracotta", "Dusty mauve", "Brown nude"],
+        "pigmented_lips_note": "Vivid fuchsia and icy red shades make naturally pigmented lips pop; muted or warm-brown tones flatten the natural brightness."
+      },
+      "blush": {
+        "best": [
+          {
+            "name": "Bright Pink",
+            "hex": "#FF6F91",
+            "description": "Vivid cool-bright pink"
+          },
+          {
+            "name": "Watermelon",
+            "hex": "#F26A8D",
+            "description": "Clear bright pink-coral"
+          }
+        ],
+        "avoid": ["Muted terracotta", "Bronze", "Dusty peach"]
+      },
+      "dress_occasions": {
+        "casual": ["Fuchsia top with black jeans", "Emerald tee", "Cobalt sundress"],
+        "office": ["Royal blue blazer", "Black and white blouse"],
+        "evening": ["Emerald gown", "Fuchsia cocktail dress", "Icy red dress"],
+        "wedding_guest": ["Hot pink lehenga", "Cobalt saree", "Emerald dress"],
+        "summer_dresses": ["Pure white linen dress", "Fuchsia sundress", "Royal blue dress"]
+      },
+      "hair_colors": {
+        "best": ["Cool black", "Bright cool brown", "Blue-black"],
+        "avoid": ["Warm copper", "Golden brown", "Brassy tones"],
+        "highlight_notes": "High-contrast cool highlights (if any) work well; avoid warm caramel or bronze tones that mute the natural vividness."
+      },
+      "eye_makeup": {
+        "best": ["Fuchsia", "Emerald", "Cobalt", "Bright silver"],
+        "avoid": ["Warm bronze", "Mustard", "Dusty taupe"]
+      },
+      "special_notes": {
+        "pigmented_lips": "Fuchsia and icy red lipsticks amplify naturally pigmented lips; muted or warm-brown shades dull their natural vividness.",
+        "hyperpigmentation": "A cool-neutral concealer with light coverage blends best; warm golden correctors can look orange against clear cool-neutral skin.",
+        "olive_skin": "A cool-leaning olive complexion in this group should still favor vivid clear jewel tones over muted earth tones, which can look flat against the natural brightness."
+      },
+      "label": "Bright Winter",
+      "family": "winter",
+      "profile": {
+        "undertone": "neutral_cool",
+        "depth": "light_to_medium",
+        "clarity": "vivid_icy",
+        "contrast": "high"
+      },
+      "jewelry_simple": ["silver", "white gold", "platinum"],
+      "lipstick_family": {
+        "name": "Fuchsia",
+        "hexes": ["#E0115F", "#FF0090", "#D6006D"]
+      },
+      "blush_family": {
+        "name": "Bright Pink",
+        "hexes": ["#FF6F91", "#F26A8D"]
+      }
+    }
+  }
+}
