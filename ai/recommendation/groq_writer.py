@@ -3,28 +3,24 @@ groq_writer.py — AI-powered recommendation writer using Groq LLM
 Enhanced to use rich season data for personalized recommendations.
 """
 
+import logging
 import os
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
+
 from groq import Groq
 
-# ── LOAD ENVIRONMENT ──
-try:
-    from dotenv import load_dotenv
-    env_path = "/Users/shezamishal19/Desktop/ShadeSense/backend/.env"
-    if os.path.exists(env_path):
-        load_dotenv(env_path)
-        print(f"📂 Loaded .env from: {env_path}")
-    else:
-        print(f"⚠️ .env not found at: {env_path}")
-except Exception as e:
-    print(f"⚠️ Could not load .env: {e}")
+from ai.colorimetry.face_color import UNDERTONE_RELIABILITY
 
-# ── GET API KEY ──
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
-if GROQ_API_KEY:
-    print(f"✅ GROQ_API_KEY found: {GROQ_API_KEY[:10]}...")
-else:
-    print("⚠️ GROQ_API_KEY not found in environment")
+logger = logging.getLogger(__name__)
+
+# The key is read from the environment at call time. backend/app.py loads backend/.env
+# at start-up; nothing here depends on where the repo lives on disk.
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
+GROQ_TIMEOUT_SECONDS = float(os.environ.get("GROQ_TIMEOUT_SECONDS", "20"))
+
+
+def _get_api_key() -> Optional[str]:
+    return os.environ.get("GROQ_API_KEY") or None
 
 
 # ── SHARED SYSTEM PROMPT ──
@@ -46,7 +42,13 @@ CRITICAL RULES:
 5. One emoji per section header maximum.
 6. Respond in Markdown with ### headers and flowing prose.
 7. Real brand names only in the Foundation Match section.
-8. Be warm, concise, and specific — no filler."""
+8. Be warm, concise, and specific — no filler.
+9. The undertone label is a LOW-CONFIDENCE BEST GUESS: tested against people's own
+   judgements it agreed about as often as chance. NEVER state the undertone as a fact
+   ("you have a neutral undertone", "your cool undertone") and never make it the main
+   reason for a conclusion. If you mention it at all, hedge it ("our best guess is…",
+   "it may lean…") and suggest checking it in person. Depth is the more reliable
+   measurement."""
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -90,7 +92,7 @@ def build_observations_text(observations: Dict[str, Any]) -> str:
     if perioral and perioral.get('severity') in ('mild', 'pronounced'):
         lines.append(
             f"- Perioral area: {perioral['severity']} discoloration relative "
-            f"to jaw baseline"
+            f"to chin baseline"
         )
         guidance_blocks.append(
             "For perioral discoloration: warm/yellow-based concealer helps; "
@@ -177,10 +179,14 @@ percentages or margins, just explain what they have in common and lean toward
 """
         if is_close else
         f"""
-{top[0]['season_label']} is the clear, confident classification. Present it
-as the primary result without hedging or citing scores.
+{top[0]['season_label']} is the top-ranked season. Present it as the primary
+result without citing scores.
 """
-    )
+    ) + """
+The season ranking depends heavily on the undertone guess (a different undertone
+usually gives a different season), so present the season as a starting point to try,
+not a verdict, and say that briefly.
+"""
 
     # ── Build observations text (only if present) ──
     observations_text = build_observations_text(observations or {})
@@ -194,10 +200,10 @@ each palette — do NOT list individual shade names from it in your output.
 
 ## Skin Profile
 - Depth: {depth}
-- Undertone: {undertone}
+- Undertone: {undertone}  (reliability: {UNDERTONE_RELIABILITY}; a best guess, NOT a fact; see rule 9)
 - Clarity: {clarity}
 - ITA Value: {ita_degrees:.1f}°
-- Confidence: {confidence:.0%}
+- Measurement quality: {confidence:.0%}  (how clean the skin sample was, NOT how likely the labels are right)
 
 ## Best Foundation Matches (Delta-E 2000) — the only place you may name brands/products
 {foundation_text}
@@ -240,18 +246,18 @@ Respond in Markdown with the following sections. Only include the "A Few Extra N
 
 ### 🌟 Your Skin & Season
 Write 4-6 sentences. Don't just state the season — explain the reasoning
-chain: which characteristic (undertone/depth/clarity/contrast) drove the
-classification, what that characteristic means for color choice in
+chain: which characteristic (depth, clarity or contrast; undertone only as a
+tentative guess) drove the classification, what that characteristic means for color choice in
 practice, and what this person should look for or avoid as a *principle*
-(not a shade list) when shopping. If the confidence is moderate, say so
+(not a shade list) when shopping. If measurement quality is moderate, say so
 and explain what that uncertainty means for how strictly they should
 follow the season rules.
 
 ### 💄 Foundation Match
 Write 4-5 sentences. Lead with the shade and ΔE-based verdict, then explain
 concretely what that ΔE means in real terms (visible under what lighting,
-how it'll wear through the day, whether undertone or depth is the bigger
-factor in the match). If a second option is mentioned, explain the specific
+how it'll wear through the day). The match is made on the measured skin
+colour itself, not on the undertone label, so don't attribute it to undertone. If a second option is mentioned, explain the specific
 scenario where someone would reach for it instead of the top pick.
 """
 
@@ -275,120 +281,6 @@ One emoji per section header maximum. Keep the tone warm, grounded, and specific
 
 
 # ═══════════════════════════════════════════════════════════════
-# LEGACY/BASIC PROMPT (fallback when no ranked data)
-# ═══════════════════════════════════════════════════════════════
-
-def build_basic_ai_prompt(
-    face_result: Dict[str, Any],
-    foundation_matches: List[Dict[str, Any]],
-    season_data: Dict[str, Any]
-) -> str:
-    """Fallback prompt when rich season data isn't available."""
-    depth = face_result.get('depth', 'medium')
-    undertone = face_result.get('undertone', 'neutral')
-    season_label = season_data.get('season_label', 'Neutral')
-
-    top_foundation = foundation_matches[0] if foundation_matches else None
-    foundation_text = f"{top_foundation['brand']} - {top_foundation['shade']}" if top_foundation else "None found"
-
-    prompt = f"""
-Based on this skin data:
-
-Skin: {depth} with {undertone} undertones
-Season: {season_label}
-Best Foundation: {foundation_text}
-
-Write a short, warm narrative in Markdown with exactly two sections:
-
-### 🌟 Your Skin & Season
-2-3 sentences describing their skin and season in plain language. Do not
-list individual color/shade names — describe the general mood of the
-palette instead (e.g. "warm, golden tones").
-
-### 💄 Foundation Match
-1-2 sentences on why the foundation above is a good match.
-
-One emoji per header maximum. Be professional and concise, not chatty.
-"""
-
-    return prompt
-
-
-def build_enhanced_ai_prompt(
-    face_result: Dict[str, Any],
-    foundation_matches: List[Dict[str, Any]],
-    season_data: Dict[str, Any],
-    rich_season_data: Dict[str, Any]
-) -> str:
-    """Legacy prompt for non-ranked flow."""
-    depth = face_result.get('depth', 'medium')
-    undertone = face_result.get('undertone', 'neutral')
-    clarity = face_result.get('clarity', 'medium')
-    confidence = face_result.get('confidence', 0.8)
-    ita_degrees = face_result.get('ita_degrees', 0)
-
-    season_label = season_data.get('season_label', 'Neutral')
-    season_name = rich_season_data.get('season', season_label)
-    season_family = rich_season_data.get('family', '')
-
-    skin_chars = rich_season_data.get('skin_characteristics', {})
-    best_colors = rich_season_data.get('best_clothing_colors', {})
-    lipstick = rich_season_data.get('lipstick', {})
-    blush = rich_season_data.get('blush', {})
-
-    top_foundations = foundation_matches[:3] if foundation_matches else []
-    foundation_text = "\n".join([
-        f"  • {match['brand']} - {match['shade']} (ΔE: {match.get('distance', 0):.2f})"
-        for match in top_foundations
-    ]) if top_foundations else "  • No matches found"
-
-    lipstick_best = lipstick.get('best', [])
-    blush_best = blush.get('best', [])
-
-    prompt = f"""
-You are writing a short narrative summary for a client with this skin/season profile.
-Reference material is provided below so you understand the *mood* of their palette —
-but do NOT list individual shade names from it; those are already shown to the
-client as colored chips elsewhere on the page.
-
-## Skin Profile
-- Depth: {depth}
-- Undertone: {undertone}
-- Clarity: {clarity}
-- ITA Value: {ita_degrees:.1f}°
-- Confidence: {confidence:.0%}
-
-## Color Season
-- Season: {season_name}
-- Family: {season_family}
-- Pigmentation Notes: {skin_chars.get('pigmentation_notes', 'Not specified')}
-
-## Best Foundation Matches (Delta-E 2000) — the only place you may name brands/products
-{foundation_text}
-
-## Reference only (do NOT list these by name — use them to understand the palette's mood)
-- Primary clothing colors: {', '.join(best_colors.get('primary', []))}
-- Secondary clothing colors: {', '.join(best_colors.get('secondary', []))}
-- Lipstick mood: {', '.join(item['name'] for item in lipstick_best)}
-- Blush mood: {', '.join(item['name'] for item in blush_best)}
-
-## OUTPUT FORMAT
-Respond in Markdown with ONLY these two sections:
-
-### 🌟 Your Skin & Season
-Write 3-4 natural, personalized sentences. Name the final season once.
-Explain what this means practically for the person's coloring.
-
-### 💄 Foundation Match
-Lead with the single best foundation match using its actual brand and shade.
-Use the ΔE value to honestly describe the match quality. Do not mention
-numeric scores directly — translate them into plain language.
-"""
-
-    return prompt
-
-
-# ═══════════════════════════════════════════════════════════════
 # TEMPLATE FALLBACK (when Groq is unavailable)
 # ═══════════════════════════════════════════════════════════════
 
@@ -401,12 +293,14 @@ def _generate_template_response(
     depth = face_result.get('depth', 'medium')
     undertone = face_result.get('undertone', 'neutral')
     season_label = season_data.get('season_label', 'Neutral')
-    confidence = face_result.get('confidence', 0)
 
     response = (
         f"### 🌟 Your Skin & Season\n\n"
-        f"Your skin reads as **{depth}** depth with a **{undertone}** undertone "
-        f"({confidence:.0%} confidence), placing you in the **{season_label}** palette.\n\n"
+        f"Your skin reads as **{depth}** depth. Our best guess for your undertone is "
+        f"**{undertone}**, but undertone is hard to judge from a photo and this guess is "
+        f"low-confidence, so it's worth checking in person. The closest palette is "
+        f"**{season_label}**, but that depends heavily on the undertone guess, so treat "
+        f"it as a starting point rather than a verdict.\n\n"
     )
 
     top_match = foundation_matches[0] if foundation_matches else None
@@ -430,68 +324,6 @@ def _generate_template_response(
 
 
 # ═══════════════════════════════════════════════════════════════
-# LEGACY NON-RANKED ENTRY POINT
-# ═══════════════════════════════════════════════════════════════
-
-def get_groq_recommendations(
-    face_result: Dict[str, Any],
-    foundation_matches: List[Dict[str, Any]],
-    season_data: Dict[str, Any],
-    season_key: str = None
-) -> Dict[str, Any]:
-    """
-    Legacy non-ranked Groq call. Returns a dict with 'summary' and 'structured'.
-    """
-    if not GROQ_API_KEY:
-        print("⚠️ GROQ_API_KEY not set. Using template fallback.")
-        return {
-            "summary": _generate_template_response(face_result, foundation_matches, season_data),
-            "structured": {}
-        }
-
-    try:
-        client = Groq(api_key=GROQ_API_KEY)
-        rich_season_data = season_data.get('raw_data', {}) or {}
-
-        if rich_season_data:
-            prompt = build_enhanced_ai_prompt(
-                face_result,
-                foundation_matches,
-                season_data,
-                rich_season_data
-            )
-        else:
-            prompt = build_basic_ai_prompt(face_result, foundation_matches, season_data)
-
-        print("🤖 Calling Groq API (legacy)...")
-
-        response = client.chat.completions.create(
-            model='openai/gpt-oss-120b',
-            messages=[
-                {"role": "system", "content": NARRATIVE_SYSTEM_PROMPT},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.3,
-            max_tokens=700,
-        )
-
-        result = response.choices[0].message.content
-        print("✅ Groq API response received (legacy)")
-
-        return {
-            "summary": result,
-            "structured": {}
-        }
-
-    except Exception as e:
-        print(f"⚠️ Groq API error (legacy): {e}")
-        return {
-            "summary": _generate_template_response(face_result, foundation_matches, season_data),
-            "structured": {}
-        }
-
-
-# ═══════════════════════════════════════════════════════════════
 # MAIN RANKED ENTRY POINT
 # ═══════════════════════════════════════════════════════════════
 
@@ -503,11 +335,12 @@ def get_ai_recommendations_ranked(
     observations: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
-    Ranked-aware entry point using season scoring. Falls back to template
-    if Groq is unavailable.
-    """
-    print("🔥🔥🔥 Groq Writer (Ranked) — Observations Included 🔥🔥🔥")
+    Ranked-aware entry point using season scoring. Falls back to a deterministic
+    template if Groq isn't configured or the call fails.
 
+    The returned "source" is "groq" only when the LLM actually wrote the summary,
+    otherwise "template", so the API never claims AI text it didn't get.
+    """
     winner = ranked_seasons["top_seasons"][0]
     winner_key = winner["season_key"]
     rich_season_data = seasons_full_data.get(winner_key, {}) or {}
@@ -517,6 +350,7 @@ def get_ai_recommendations_ranked(
         'skin': {
             'depth': face_result.get('depth'),
             'undertone': face_result.get('undertone'),
+            'undertone_reliability': UNDERTONE_RELIABILITY,
             'clarity': face_result.get('clarity'),
             'confidence': face_result.get('confidence'),
             'ita_degrees': face_result.get('ita_degrees'),
@@ -540,19 +374,23 @@ def get_ai_recommendations_ranked(
         'ranked_seasons': ranked_seasons,
     }
 
-    # ── If no API key, use template ──
-    if not GROQ_API_KEY:
-        print("⚠️ GROQ_API_KEY not set. Using template fallback.")
-        fake_season_data = {"season_label": winner["season_label"]}
-        return {
-            "summary": _generate_template_response(face_result, foundation_matches, fake_season_data),
-            "structured": structured,
-            "ranked_seasons": ranked_seasons,
-        }
+    template_result = {
+        "summary": _generate_template_response(
+            face_result, foundation_matches, {"season_label": winner["season_label"]}
+        ),
+        "structured": structured,
+        "ranked_seasons": ranked_seasons,
+        "source": "template",
+    }
+
+    api_key = _get_api_key()
+    if not api_key:
+        logger.info("GROQ_API_KEY not set, using template text")
+        return template_result
 
     # ── Call Groq API ──
     try:
-        client = Groq(api_key=GROQ_API_KEY)
+        client = Groq(api_key=api_key, timeout=GROQ_TIMEOUT_SECONDS, max_retries=1)
         prompt = build_ranked_ai_prompt(
             face_result,
             foundation_matches,
@@ -561,11 +399,8 @@ def get_ai_recommendations_ranked(
             observations
         )
 
-        has_obs = observations and observations.get('has_observations', False)
-        print(f"🤖 Calling Groq API (ranked, close_call={ranked_seasons['is_close_call']}, has_obs={has_obs})...")
-
         response = client.chat.completions.create(
-            model='openai/gpt-oss-120b',
+            model=GROQ_MODEL,
             messages=[
                 {"role": "system", "content": NARRATIVE_SYSTEM_PROMPT},
                 {"role": "user", "content": prompt}
@@ -575,64 +410,15 @@ def get_ai_recommendations_ranked(
         )
 
         result = response.choices[0].message.content
-        print("✅ Groq API response received (ranked)")
+        if not result or not result.strip():
+            raise ValueError("empty response from Groq")
         return {
             "summary": result,
             "structured": structured,
             "ranked_seasons": ranked_seasons,
+            "source": "groq",
         }
 
     except Exception as e:
-        print(f"⚠️ Groq API error (ranked): {e}")
-        fake_season_data = {"season_label": winner["season_label"]}
-        return {
-            "summary": _generate_template_response(face_result, foundation_matches, fake_season_data),
-            "structured": structured,
-            "ranked_seasons": ranked_seasons,
-        }
-
-
-# ═══════════════════════════════════════════════════════════════
-# LEGACY WRAPPER (for backward compatibility)
-# ═══════════════════════════════════════════════════════════════
-
-def get_ai_recommendations(
-    face_result: Dict[str, Any],
-    foundation_matches: List[Dict[str, Any]],
-    season_data: Dict[str, Any]
-) -> Dict[str, Any]:
-    """
-    Legacy wrapper that mimics the old function signature.
-    """
-    season_key = season_data.get('season_key')
-    result = get_groq_recommendations(face_result, foundation_matches, season_data, season_key)
-    rich_season_data = season_data.get('raw_data', {}) or {}
-
-    return {
-        'summary': result.get('summary', ''),
-        'structured': {
-            'skin': {
-                'depth': face_result.get('depth'),
-                'undertone': face_result.get('undertone'),
-                'clarity': face_result.get('clarity'),
-                'confidence': face_result.get('confidence'),
-                'ita_degrees': face_result.get('ita_degrees'),
-            },
-            'foundations': foundation_matches[:5],
-            'season': {
-                'label': season_data.get('season_label'),
-                'family': season_data.get('family'),
-                'jewelry': rich_season_data.get('jewelry', {}).get('best', season_data.get('jewelry', [])),
-                'lipstick': rich_season_data.get('lipstick', {}).get('best', []),
-                'blush': rich_season_data.get('blush', {}).get('best', []),
-                'best_colors': rich_season_data.get('best_clothing_colors', {}),
-                'worst_colors': rich_season_data.get('worst_clothing_colors', []),
-            },
-            'recommendations': {
-                'dress_occasions': rich_season_data.get('dress_occasions', {}),
-                'hair_colors': rich_season_data.get('hair_colors', {}),
-                'eye_makeup': rich_season_data.get('eye_makeup', {}),
-                'special_notes': rich_season_data.get('special_notes', {})
-            }
-        }
-    }
+        logger.warning("Groq call failed, using template text: %s", e)
+        return template_result

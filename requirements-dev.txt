@@ -1,0 +1,6 @@
+# Tests, linting and the offline scripts in scripts/
+-r backend/requirements.txt
+pytest==9.1.1
+ruff==0.14.0
+tqdm==4.68.2
+requests==2.34.2

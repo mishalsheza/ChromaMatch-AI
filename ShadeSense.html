@@ -334,6 +334,10 @@
   }
   .ita-center { text-align: center; }
 
+  .low-confidence {
+    opacity: 0.75;
+    font-style: italic;
+  }
   .undertone-desc {
     background: var(--surface2);
     border: 1px solid var(--border);
@@ -346,6 +350,22 @@
   }
   .undertone-desc strong {
     color: var(--text);
+  }
+  .skin-observations {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: -12px 0 28px;
+  }
+  .skin-observation-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: var(--rose-dim);
+    border: 1px solid var(--rose-border);
+    color: var(--text-light);
+    font-size: 0.75rem;
   }
 
   .recommendations-card {
@@ -636,6 +656,15 @@
   <!-- PAGE 2: RESULTS -->
   <div class="page" id="page2">
     <div class="results-header">
+      <!-- Add this div after the results-header -->
+<div style="display:flex; gap:12px; justify-content:center; margin: 16px 0 24px; flex-wrap:wrap;">
+  <button class="btn btn-rose" id="download-report-btn" onclick="downloadReport()">
+    📄 Download Full Report
+  </button>
+  <button class="btn btn-outline" onclick="window.print()">
+    🖨️ Print Report
+  </button>
+</div>
       <div class="upload-eyebrow">🎉 Your Results</div>
       <h2>Your skin profile</h2>
       <p class="results-subtitle" id="result-summary">Loading...</p>
@@ -682,6 +711,8 @@
       <span id="undertone-text">—</span>
     </div>
 
+    <div class="skin-observations" id="skin-observations" hidden></div>
+
      <div class="recommendations-card" id="recommendations-card">
       <h3>💬 Your Personal Read</h3>
       <div class="recommendations-text" id="recommendations-text">Loading...</div>
@@ -727,7 +758,26 @@
 // ============================================
 // CONFIGURATION
 // ============================================
-const API_BASE_URL = 'http://localhost:5001';
+// Same origin when the page is served by the backend (http://localhost:5001/).
+// When opened from another dev server (e.g. Live Server), fall back to the local API.
+// Override by setting window.SHADESENSE_API_BASE before this script runs.
+const API_BASE_URL = window.SHADESENSE_API_BASE
+  ?? (location.port === '5001' ? '' : 'http://localhost:5001');
+
+// Undertone agreed with people's own judgements only about as often as chance (see README,
+// "Evaluation"), so it is always shown as a low-confidence best guess, never as a fact.
+const UNDERTONE_NOTE_FALLBACK = "Undertone is a best guess. In testing it agreed with people's own " +
+  "judgements about as often as chance, so check it in person (e.g. gold vs silver jewellery) before relying on it.";
+
+// Escape text before putting it into innerHTML (API data is never trusted as HTML).
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 const API_ANALYZE_URL = API_BASE_URL + '/api/analyze';
 const API_TRYON_URL = API_BASE_URL + '/api/tryon';
 const API_HEALTH_URL = API_BASE_URL + '/api/health';
@@ -760,7 +810,6 @@ async function checkBackendConnection() {
       isBackendOnline = true;
       statusEl.className = 'connection-status online';
       statusText.textContent = '🟢 Online';
-      console.log('✅ Backend connected:', data);
     } else {
       throw new Error('Health check failed');
     }
@@ -859,7 +908,6 @@ async function analyzeWithAI() {
   formData.append('image', currentImageFile);
 
   try {
-    console.log('📤 Sending request to:', API_ANALYZE_URL);
     
     const response = await fetch(API_ANALYZE_URL, { 
       method: 'POST', 
@@ -1200,11 +1248,18 @@ function displayResults(data) {
   const seasonLabel = season.label || season.season_label || '—';
   const confidence = a.confidence ? Math.round(a.confidence * 100) + '%' : '—';
   
-  document.getElementById('result-skin-tone').innerHTML = '🌸 <b>' + skinTone + '</b> Skin Tone';
-  document.getElementById('result-undertone').innerHTML = '💄 <b>' + undertone + '</b> Undertone';
+  const undertoneNote = a.undertone_note || UNDERTONE_NOTE_FALLBACK;
+
+  document.getElementById('result-skin-tone').innerHTML = '🌸 <b>' + escapeHtml(skinTone) + '</b> Skin Tone';
+  const undertoneEl = document.getElementById('result-undertone');
+  undertoneEl.innerHTML = '💄 Undertone (best guess): <b>' + escapeHtml(undertone) + '</b>';
+  undertoneEl.classList.add('low-confidence');
+  undertoneEl.title = undertoneNote;
   document.getElementById('result-season').textContent = '🍂 ' + seasonLabel;
-  document.getElementById('result-confidence').textContent = '🎯 Confidence: ' + confidence;
-  document.getElementById('result-summary').innerHTML = `<b>${skinTone}</b> skin with <b>${undertone}</b> undertone — ${seasonLabel}`;
+  // This is how clean the skin sample was, not how likely the labels are to be right
+  document.getElementById('result-confidence').textContent = '🎯 Measurement quality: ' + confidence;
+  document.getElementById('result-summary').innerHTML =
+    `<b>${escapeHtml(skinTone)}</b> skin — closest palette ${escapeHtml(seasonLabel)} (undertone uncertain)`;
   
   // ── Undertone Description ──
   const undertoneNorm = (undertone || '').toLowerCase();
@@ -1216,8 +1271,11 @@ function displayResults(data) {
     ? '🫒 Earthy, jewel-toned colors with a greenish cast suit you beautifully.'
     : '✨ Balanced — you can wear both warm and cool colors beautifully.';
   
-  document.getElementById('undertone-title').textContent = undertone + ' Undertone — ';
-  document.getElementById('undertone-text').textContent = undertoneDesc;
+  document.getElementById('undertone-title').textContent = `Undertone: best guess "${undertone}" (low confidence). `;
+  document.getElementById('undertone-text').textContent =
+    undertoneNote + ' The suggested palette depends heavily on this guess. If the guess is right: ' + undertoneDesc;
+
+  renderSkinObservations(data.skin_observations);
   
   // ── ITA ──
   const ita = a.ita_degrees || 30;
@@ -1234,15 +1292,18 @@ function displayResults(data) {
       foundationsBox.innerHTML = foundations.slice(0, 5).map(f => `
         <div class="foundation-item">
           <div class="foundation-info">
-            <div class="foundation-brand">${f.brand || 'Brand'}</div>
-            <div class="foundation-product">${f.product || f.shade || 'Shade'}</div>
+            <div class="foundation-brand">${escapeHtml(f.brand || 'Brand')}</div>
+            <div class="foundation-product">${escapeHtml(f.product || f.shade || 'Shade')}</div>
           </div>
           <div class="foundation-actions">
-            <span class="foundation-shade">${f.shade || 'Shade'}</span>
-            <button class="btn-tryon" onclick="tryOnFoundation('${f.shade}')">Try On</button>
+            <span class="foundation-shade">${escapeHtml(f.shade || 'Shade')}</span>
+            <button class="btn-tryon" data-brand="${escapeHtml(f.brand || '')}" data-shade="${escapeHtml(f.shade || '')}">Try On</button>
           </div>
         </div>
       `).join('');
+      foundationsBox.querySelectorAll('.btn-tryon').forEach(btn => {
+        btn.addEventListener('click', () => tryOnFoundation({ brand: btn.dataset.brand, shade: btn.dataset.shade }));
+      });
     } else {
       foundationsBox.innerHTML = `<div style="color:var(--text-light);text-align:center;padding:20px;">No foundation matches found. Try a different image.</div>`;
     }
@@ -1254,8 +1315,6 @@ const recsText = document.getElementById('recommendations-text');
 
 if (recsText) {
 
-    console.log('🤖 Raw AI response:', data.recommendations);
-    console.log('🤖 Raw ai_recommendations:', data.ai_recommendations);
 
     let aiSummary = '';
 
@@ -1278,7 +1337,6 @@ if (recsText) {
         aiSummary = data.recommendations;
     }
 
-    console.log('🤖 Final AI summary:', aiSummary);
 
     if (aiSummary && aiSummary.trim().length > 20) {
         recsText.innerHTML = renderMarkdown(aiSummary);
@@ -1294,6 +1352,33 @@ if (recsText) {
   renderColorPalette(data);
 }
 
+function renderSkinObservations(observations) {
+  const container = document.getElementById('skin-observations');
+  if (!container) return;
+
+  const items = [];
+  if (observations && observations.has_observations) {
+    if (observations.under_eye) {
+      const cast = observations.under_eye.cast ? `, ${observations.under_eye.cast} cast` : '';
+      items.push(`Under-eye: ${observations.under_eye.severity || 'notable'}${cast}`);
+    }
+    if (observations.perioral) {
+      items.push(`Perioral area: ${observations.perioral.severity || 'notable'} variation`);
+    }
+    if (observations.redness) {
+      items.push(`Cheek redness: ${observations.redness.severity || 'notable'}`);
+    }
+    if (observations.tone_evenness === 'uneven') {
+      items.push('Tone variation across regions');
+    } else if (observations.tone_evenness === 'even') {
+      items.push('Even tone across regions');
+    }
+  }
+
+  container.innerHTML = items.map(item => `<span class="skin-observation-tag">${escapeHtml(item)}</span>`).join('');
+  container.hidden = items.length === 0;
+}
+
 // ============================================
 // RENDER COLOR PALETTE
 // ============================================
@@ -1307,14 +1392,11 @@ function renderColorPalette(data) {
   const paletteContent = document.getElementById('color-palette-content');
   if (!paletteContent) return;
   
-  console.log('🔍 Rendering color palette with data:', data);
   
   const structuredRecs = data.structured_recommendations || {};
   const season = structuredRecs.season || data.season || {};
   const recs = structuredRecs.recommendations || {};
   
-  console.log('📊 Season data:', season);
-  console.log('📊 Recommendations data:', recs);
 
   // Helper: safely get array from various formats
   const safeArray = (value) => {
@@ -1683,7 +1765,6 @@ if (jewelry && jewelry.length > 0) {
   }
   
   paletteContent.innerHTML = paletteHTML;
-  console.log('✅ Palette rendered with HTML length:', paletteHTML.length);
 }
 // ── Helper: Render Markdown ──
 function renderMarkdown(text) {
@@ -1782,11 +1863,11 @@ function showErrorDialog(message) {
   }
   
   if (foundationsBox) {
-    foundationsBox.innerHTML = `<div style="color:var(--text-light);text-align:center;padding:20px;">⚠️ ${message}</div>`;
+    foundationsBox.innerHTML = `<div style="color:var(--text-light);text-align:center;padding:20px;">⚠️ ${escapeHtml(message)}</div>`;
   }
   
   if (recsText) {
-    recsText.innerHTML = `<p style="color:#D47A7A;">⚠️ ${message}</p>`;
+    recsText.innerHTML = `<p style="color:#D47A7A;">⚠️ ${escapeHtml(message)}</p>`;
   }
   
   showPage(2);
@@ -1795,7 +1876,7 @@ function showErrorDialog(message) {
 // ============================================
 // TRY-ON FUNCTIONS
 // ============================================
-async function tryOnFoundation(shade) {
+async function tryOnFoundation(foundation) {
   if (!isBackendOnline) {
     await checkBackendConnection();
     if (!isBackendOnline) {
@@ -1804,7 +1885,7 @@ async function tryOnFoundation(shade) {
     }
   }
   
-  currentShade = shade;
+  currentShade = foundation;
   const modal = document.getElementById('tryon-modal');
   modal.classList.add('show');
   
@@ -1819,7 +1900,8 @@ async function tryOnFoundation(shade) {
   
   const formData = new FormData();
   formData.append('image', currentImageFile);
-  formData.append('shade', shade);
+  formData.append('brand', foundation.brand);
+  formData.append('shade', foundation.shade);
   formData.append('intensity', currentIntensity);
   
   try {
@@ -1942,6 +2024,430 @@ if(captureBtn) {
       }, 'image/png');
     }
   });
+}
+// ============================================
+// DOWNLOAD REPORT - COMPLETE FIX
+// ============================================
+function downloadReport() {
+  if (!currentAnalysisData) {
+    alert('Please analyze an image first!');
+    return;
+  }
+
+  const data = currentAnalysisData;
+  const a = data.analysis || {};
+  const season = data.season || {};
+  const structuredRecs = data.structured_recommendations || {};
+  const foundations = structuredRecs.foundations || data.foundations || [];
+  const aiRecs = data.ai_recommendations || data.recommendations || {};
+  
+  let summary = 'No AI recommendations available.';
+  if (typeof aiRecs === 'string') {
+    summary = aiRecs;
+  } else if (aiRecs && typeof aiRecs === 'object') {
+    summary = aiRecs.summary || aiRecs.text || aiRecs.content || 'No AI recommendations available.';
+  }
+  
+  const observations = data.skin_observations || {};
+
+  const timestamp = new Date().toLocaleString();
+  const undertone = a.undertone || '—';
+  const depth = a.depth || '—';
+  const seasonLabel = season.label || season.season_label || '—';
+  const confidence = a.confidence ? Math.round(a.confidence * 100) + '%' : '—';
+  const ita = a.ita_degrees || 0;
+
+  // Undertone description
+  const undertoneDescriptions = {
+    'warm': 'Golden and peachy hues — bronze, caramel, and earth tones suit you beautifully.',
+    'cool': 'Pink and rosy hues — jewel tones, berries, and blue-based neutrals suit you.',
+    'olive': 'Earthy, jewel-toned colors with a greenish cast suit you beautifully.',
+    'neutral': 'Balanced — you can wear both warm and cool colors beautifully.',
+    'neutral_warm': 'Warm-leaning neutral — you can wear most warm and some cool colors.',
+    'neutral_cool': 'Cool-leaning neutral — you can wear most cool and some warm colors.'
+  };
+  const undertoneDesc = undertoneDescriptions[undertone.toLowerCase()] || 'A balanced undertone that works with many colors.';
+  const undertoneNote = a.undertone_note || UNDERTONE_NOTE_FALLBACK;
+
+  // Build observations list
+  const observationItems = [];
+  if (observations && observations.has_observations) {
+    if (observations.under_eye) {
+      observationItems.push(`Under-eye area: ${observations.under_eye.severity || 'notable'}${observations.under_eye.cast ? `, ${observations.under_eye.cast} cast` : ''}`);
+    }
+    if (observations.perioral) {
+      observationItems.push(`Perioral area: ${observations.perioral.severity || 'notable'} variation`);
+    }
+    if (observations.redness) {
+      observationItems.push(`Cheek redness: ${observations.redness.severity || 'notable'}`);
+    }
+    if (observations.tone_evenness === 'even') {
+      observationItems.push('Even tone across regions');
+    } else if (observations.tone_evenness === 'uneven') {
+      observationItems.push('Tone variation across regions');
+    }
+  }
+
+  // Build foundations list
+  let foundationListHTML = '';
+  if (foundations && foundations.length > 0) {
+    foundationListHTML = foundations.slice(0, 5).map(f => `
+      <div class="foundation-item">
+        <span class="foundation-brand">${f.brand || 'Brand'}</span>
+        <span class="foundation-shade">${f.product || f.shade || 'Shade'}</span>
+      </div>
+    `).join('');
+  } else {
+    foundationListHTML = '<p style="color:#8B6B6B;">No foundation matches found.</p>';
+  }
+
+  // Build color palette
+  const paletteData = structuredRecs.season || season;
+  const lipsticks = paletteData.lipstick || [];
+  const blushes = paletteData.blush || [];
+  const jewelry = paletteData.jewelry || [];
+  const bestColors = paletteData.best_colors || {};
+
+  // HTML Report
+  const reportHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>ShadeSense — Personal Color Analysis Report</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #FFF8F8;
+      color: #4A3535;
+      padding: 40px;
+      max-width: 1000px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+    .report-header {
+      text-align: center;
+      padding: 30px 0 20px;
+      border-bottom: 2px solid #E8A2A2;
+      margin-bottom: 30px;
+    }
+    .report-header h1 {
+      font-size: 2.5rem;
+      color: #E8A2A2;
+      font-weight: 400;
+      font-family: Georgia, serif;
+    }
+    .report-header .sub {
+      color: #8B6B6B;
+      font-size: 0.9rem;
+    }
+    .report-meta {
+      display: flex;
+      justify-content: space-between;
+      color: #8B6B6B;
+      font-size: 0.8rem;
+      margin-top: 8px;
+    }
+    .section {
+      background: white;
+      border-radius: 16px;
+      padding: 24px 28px;
+      margin-bottom: 24px;
+      border: 1px solid rgba(232,162,162,0.15);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    }
+    .section h2 {
+      font-family: Georgia, serif;
+      font-size: 1.3rem;
+      color: #4A3535;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid rgba(232,162,162,0.3);
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 16px;
+      border-radius: 20px;
+      font-weight: 500;
+      font-size: 0.9rem;
+      background: #F5D0D0;
+      color: #D47A7A;
+    }
+    .badge-rose {
+      background: #E8A2A2;
+      color: white;
+    }
+    .stat-item {
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    .stat-item:last-child { border-bottom: none; }
+    .stat-label { color: #8B6B6B; font-size: 0.85rem; }
+    .stat-value { font-weight: 600; font-size: 1rem; }
+    .color-swatch {
+      display: inline-block;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      margin-right: 6px;
+      border: 2px solid rgba(0,0,0,0.08);
+      vertical-align: middle;
+    }
+    .color-tag {
+      display: inline-block;
+      padding: 4px 12px 4px 4px;
+      border-radius: 20px;
+      border: 1px solid rgba(232,162,162,0.2);
+      background: #FEF5F5;
+      margin: 4px;
+      font-size: 0.8rem;
+    }
+    .color-tag-avoid {
+      background: rgba(180,60,60,0.06);
+      border-color: rgba(180,60,60,0.15);
+      color: #A04040;
+    }
+    .foundation-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+    .foundation-item:last-child { border-bottom: none; }
+    .foundation-brand { font-weight: 600; }
+    .foundation-shade { color: #8B6B6B; font-size: 0.9rem; }
+    .ita-bar {
+      height: 10px;
+      border-radius: 10px;
+      background: linear-gradient(to right, #3B2219, #6B4433, #A67358, #D4A387, #F2D0BC, #FDE6D8);
+      margin: 12px 0 6px;
+      position: relative;
+    }
+    .ita-marker {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: white;
+      border: 3px solid #E8A2A2;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .ita-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.6rem;
+      color: #8B6B6B;
+    }
+    .observation-tag {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      background: #F5D0D0;
+      font-size: 0.8rem;
+      margin: 4px;
+      border: 1px solid rgba(232,162,162,0.2);
+    }
+    .footer {
+      text-align: center;
+      padding: 20px 0;
+      color: #8B6B6B;
+      font-size: 0.7rem;
+      border-top: 1px solid rgba(232,162,162,0.15);
+      margin-top: 30px;
+    }
+    .disclaimer {
+      font-size: 0.7rem;
+      color: #C4A0A0;
+      margin-top: 8px;
+      padding: 12px;
+      background: rgba(232,162,162,0.05);
+      border-radius: 8px;
+    }
+    @media print {
+      body { padding: 20px; }
+      .section { break-inside: avoid; }
+      .no-print { display: none; }
+    }
+    @media (max-width: 600px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      body { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="report-header">
+    <h1>✨ ShadeSense</h1>
+    <div class="sub">AI-Powered Personal Color Analysis</div>
+    <div class="report-meta">
+      <span>Generated: ${timestamp}</span>
+      <span>Measurement quality: ${confidence}</span>
+    </div>
+  </div>
+
+  <!-- Executive Summary -->
+  <div class="section">
+    <h2>📊 Executive Summary</h2>
+    <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
+      <span class="badge badge-rose">${depth} Skin</span>
+      <span class="badge"><em>${escapeHtml(undertone)} undertone (best guess)</em></span>
+      <span class="badge">${escapeHtml(seasonLabel)}</span>
+    </div>
+    <p style="color:#5A4A4A; font-size:0.95rem;">${escapeHtml(depth)} skin. Closest palette: <strong>${escapeHtml(seasonLabel)}</strong>. It depends heavily on the undertone guess, so treat it as a starting point. Measurement quality: ${confidence}.</p>
+    <p style="color:#8B6B6B; font-size:0.9rem; margin-top:6px;">${escapeHtml(undertoneNote)} If the guess "${escapeHtml(undertone)}" is right: ${undertoneDesc}</p>
+  </div>
+
+  <!-- Skin Analysis -->
+  <div class="section">
+    <h2>🔬 Skin Analysis</h2>
+    <div class="grid-2">
+      <div>
+        <div class="stat-item"><span class="stat-label">Skin Tone Depth</span><br><span class="stat-value">${depth}</span></div>
+        <div class="stat-item"><span class="stat-label">Undertone (best guess, low confidence)</span><br><span class="stat-value"><em>${escapeHtml(undertone)}</em></span></div>
+        <div class="stat-item"><span class="stat-label">Clarity</span><br><span class="stat-value">${a.clarity || '—'}</span></div>
+        <div class="stat-item"><span class="stat-label">Contrast</span><br><span class="stat-value">${a.contrast || '—'}</span></div>
+      </div>
+      <div>
+        <div class="stat-item"><span class="stat-label">ITA Degree</span><br><span class="stat-value">${ita.toFixed(1)}°</span></div>
+        <div class="stat-item"><span class="stat-label">ITA Bucket</span><br><span class="stat-value">${a.ita_bucket || '—'}</span></div>
+        <div class="stat-item"><span class="stat-label">L* (Lightness)</span><br><span class="stat-value">${a.L ? a.L.toFixed(1) : '—'}</span></div>
+        <div class="stat-item"><span class="stat-label">a* / b* (Color)</span><br><span class="stat-value">${a.a ? a.a.toFixed(1) : '—'} / ${a.b ? a.b.toFixed(1) : '—'}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ITA Scale -->
+  <div class="section">
+    <h2>📐 ITA Scale — ${ita.toFixed(1)}°</h2>
+    <div class="ita-bar">
+      <div class="ita-marker" style="left:${Math.max(2, Math.min(98, ((ita + 90) / 180) * 100))}%"></div>
+    </div>
+    <div class="ita-labels">
+      <span>Very dark</span><span>Dark</span><span>Tan</span><span>Intermediate</span><span>Light</span><span>Very light</span>
+    </div>
+    <div style="text-align:center;margin-top:8px;font-size:0.85rem;color:#8B6B6B;">
+      Your skin falls in the <strong>${a.ita_bucket || '—'}</strong> range
+    </div>
+  </div>
+
+  ${observationItems.length > 0 ? `
+  <div class="section">
+    <h2>🔍 Skin Observations</h2>
+    ${observationItems.map(item => `<span class="observation-tag">${item}</span>`).join('')}
+  </div>
+  ` : ''}
+
+  <!-- Foundation Matches -->
+  <div class="section">
+    <h2>💄 Foundation Matches</h2>
+    ${foundationListHTML}
+  </div>
+
+  <!-- Color Palette -->
+  <div class="section">
+    <h2>🎨 Color Palette</h2>
+    ${lipsticks && lipsticks.length > 0 ? `
+      <p style="color:#8B6B6B;font-size:0.85rem;margin-bottom:8px;"><strong>💄 Lipstick Shades:</strong></p>
+      <div style="margin-bottom:12px;">
+        ${lipsticks.map(l => {
+          const name = typeof l === 'string' ? l : (l.name || l.shade || 'Shade');
+          const color = getColorHex(name);
+          return `<span class="color-tag"><span class="color-swatch" style="background:${color}"></span>${name}</span>`;
+        }).join('')}
+      </div>
+    ` : ''}
+    ${blushes && blushes.length > 0 ? `
+      <p style="color:#8B6B6B;font-size:0.85rem;margin-bottom:8px;"><strong>🌸 Blush Shades:</strong></p>
+      <div style="margin-bottom:12px;">
+        ${blushes.map(b => {
+          const name = typeof b === 'string' ? b : (b.name || b.shade || 'Shade');
+          const color = getColorHex(name);
+          return `<span class="color-tag"><span class="color-swatch" style="background:${color}"></span>${name}</span>`;
+        }).join('')}
+      </div>
+    ` : ''}
+    ${jewelry && jewelry.length > 0 ? `
+      <p style="color:#8B6B6B;font-size:0.85rem;margin-bottom:8px;"><strong>💍 Jewelry:</strong></p>
+      <div style="margin-bottom:12px;">
+        ${jewelry.map(j => {
+          const name = typeof j === 'string' ? j : (j.name || 'Shade');
+          const color = getMetalColor(name);
+          return `<span class="color-tag"><span class="color-swatch" style="background:${color}"></span>${name}</span>`;
+        }).join('')}
+      </div>
+    ` : ''}
+    ${bestColors.primary && bestColors.primary.length > 0 ? `
+      <p style="color:#8B6B6B;font-size:0.85rem;margin-bottom:8px;"><strong>👗 Best Colors:</strong></p>
+      <div>
+        ${bestColors.primary.map(c => {
+          const name = typeof c === 'string' ? c : (c.name || 'Color');
+          const color = getColorHex(name);
+          return `<span class="color-tag"><span class="color-swatch" style="background:${color}"></span>${name}</span>`;
+        }).join('')}
+      </div>
+    ` : ''}
+    ${bestColors.secondary && bestColors.secondary.length > 0 ? `
+      <div style="margin-top:8px;">
+        ${bestColors.secondary.map(c => {
+          const name = typeof c === 'string' ? c : (c.name || 'Color');
+          const color = getColorHex(name);
+          return `<span class="color-tag"><span class="color-swatch" style="background:${color}"></span>${name}</span>`;
+        }).join('')}
+      </div>
+    ` : ''}
+  </div>
+
+  <!-- AI Recommendations -->
+  <div class="section">
+    <h2>💬 Your Personal Read</h2>
+    <div style="font-size:0.95rem;color:#4A3535;line-height:1.8;">
+      ${summary.replace(/\n/g, '<br>')}
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>Generated by ShadeSense AI — Color science meets beauty</p>
+    <p class="disclaimer">⚠️ This analysis is for informational purposes only. Individual results may vary.</p>
+  </div>
+
+  <div class="no-print" style="text-align:center;margin-top:20px;padding:16px;border-top:1px solid rgba(232,162,162,0.15);">
+    <button onclick="window.print()" style="background:#E8A2A2;color:white;border:none;padding:10px 30px;border-radius:30px;font-size:0.9rem;cursor:pointer;">🖨️ Print Report</button>
+    <button onclick="window.close()" style="background:transparent;color:#8B6B6B;border:1px solid rgba(232,162,162,0.2);padding:10px 30px;border-radius:30px;font-size:0.9rem;cursor:pointer;margin-left:12px;">✕ Close</button>
+  </div>
+</body>
+</html>
+  `;
+
+  // Open report in new tab
+    // Open report in new tab
+  const win = window.open('', '_blank');
+
+  if (win) {
+    win.document.write(reportHTML);
+    win.document.close();
+  } else {
+    // Fallback: download as file
+    const blob = new Blob([reportHTML], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ShadeSense_Report_${new Date().toISOString().slice(0, 10)}.html`;
+
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(url);
+  
+  }
 }
 </script>
 </body>

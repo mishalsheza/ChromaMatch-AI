@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            requirements-dev.txt
+      # opencv-contrib-python (pulled in by mediapipe) needs libGL on Ubuntu
+      - run: sudo apt-get update && sudo apt-get install -y libgl1
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check .
+      - run: pytest -q

@@ -2,33 +2,56 @@
 venv/
 .venv/
 venv_ai/
+backend/venv/
 backend/venv_ai/
-
-# Training data
-ai/data/raw/
-ai/data/kaggle_original/
-*.jpg
-*.jpeg
-*.png
-
-# Cache
 __pycache__/
 *.pyc
+.pytest_cache/
+.ruff_cache/
 
-# Models (if too large)
-*.h5
-*.keras
-*.ckpt
+# Environment (keep the template)
+.env
+.env.*
+!.env.example
+
+# User photos / uploads: never commit these (faces + EXIF GPS data)
+backend/uploads/
+uploads/
+temp_tryon_*
+*.jpg
+*.JPG
+*.jpeg
+*.JPEG
+*.png
+*.PNG
+*.heic
+*.HEIC
+*.webp
+# ...except small, synthetic test fixtures
+!tests/fixtures/**
+
+# Datasets (not redistributable; see README "Evaluation")
+ai/data/raw/
+ai/data/relabeled/
+ai/data/kaggle_original/
+ai/data/eval_images/
+
+# Generated outputs
+audit_results*/
+eval_results/
+region_previews/
 
 # Logs
 logs/
-
-# Environment
-.env
-.env.*
+*.log
 
 # Node
 node_modules/
 
-# macOS
+# macOS / editors
 .DS_Store
+
+# Model files (never commit)
+*.h5
+*.keras
+*.ckpt

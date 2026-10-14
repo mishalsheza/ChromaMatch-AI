@@ -1,0 +1,9 @@
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["archive", "ai/data/raw", "ai/data/relabeled", "backend/venv", "backend/venv_ai"]
+
+[tool.ruff.lint]
+# pycodestyle errors, pyflakes (unused imports/variables, undefined names), import sorting, bugbear
+select = ["E", "F", "I", "B"]
+ignore = ["E501"]   # long lines: prompts and data literals read better unwrapped

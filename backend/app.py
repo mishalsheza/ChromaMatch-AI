@@ -1,485 +1,237 @@
 """
-app.py — ShadeSense AI v2 (Colorimetry-based)
-- Face color extraction using LAB color space
-- Foundation matching with Delta-E 2000
-- 12-season color analysis
-- Groq AI recommendations
-- Skin observations (under-eye, perioral, redness)
-- Try-On feature
+app.py — ShadeSense Flask API.
+
+  POST /api/analyze        one photo → skin colour, foundation matches, season, narrative
+  POST /api/tryon          one photo + brand/shade → preview image (experimental)
+  POST /api/analyze-batch  a few photos → compact results (testing aid, no LLM)
+  GET  /api/health         readiness of each component
+  GET  /                   the frontend (ShadeSense.html)
+
+Uploads are decoded in memory and never written to disk. All settings come from
+environment variables (see backend/.env.example).
 """
 
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-import cv2
-import numpy as np
+import logging
 import os
 import sys
-import json
-import uuid
+from pathlib import Path
 
-# ──────────────────────────────────────────────────────────────
-# PATH SETUP
-# ──────────────────────────────────────────────────────────────
-ROOT_DIR = os.path.dirname(os.path.dirname(__file__))
-if ROOT_DIR not in sys.path:
-    sys.path.insert(0, ROOT_DIR)
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
-# ──────────────────────────────────────────────────────────────
-# IMPORTS
-# ──────────────────────────────────────────────────────────────
-from ai.colorimetry.skin_observations import detect_skin_observations
+from dotenv import load_dotenv  # noqa: E402
 
-# ──────────────────────────────────────────────────────────────
-# CREATE FLASK APP
-# ──────────────────────────────────────────────────────────────
+# Real environment variables win over the file; the file is optional.
+load_dotenv(ROOT_DIR / "backend" / ".env")
+
+
+def _env_int(name: str, default: int) -> int:
+    return int(os.environ.get(name, default))
+
+
+def _env_list(name: str, default: str) -> list[str]:
+    return [item.strip() for item in os.environ.get(name, default).split(",") if item.strip()]
+
+
+# ── CONFIG ──
+HOST = os.environ.get("HOST", "127.0.0.1")
+PORT = _env_int("PORT", 5001)
+CORS_ORIGINS = _env_list(
+    "SHADESENSE_CORS_ORIGINS",
+    "http://localhost:5500,http://127.0.0.1:5500,http://localhost:5501,http://127.0.0.1:5501",
+)
+MAX_UPLOAD_MB = _env_int("SHADESENSE_MAX_UPLOAD_MB", 10)
+MAX_IMAGE_PIXELS = _env_int("SHADESENSE_MAX_IMAGE_PIXELS", 40_000_000)   # ≈ 7300×5500
+MAX_BATCH_IMAGES = _env_int("SHADESENSE_MAX_BATCH_IMAGES", 5)
+RATE_LIMIT_ANALYZE = os.environ.get("SHADESENSE_RATE_LIMIT_ANALYZE", "10 per minute;200 per day")
+RATE_LIMIT_BATCH = os.environ.get("SHADESENSE_RATE_LIMIT_BATCH", "2 per minute")
+RATE_LIMIT_STORAGE = os.environ.get("SHADESENSE_RATE_LIMIT_STORAGE", "memory://")
+
+# Decompression-bomb guard: OpenCV refuses to decode images above this many pixels.
+# Must be set before cv2 is imported.
+os.environ.setdefault("OPENCV_IO_MAX_IMAGE_PIXELS", str(MAX_IMAGE_PIXELS))
+
+from flask import Flask, jsonify, request, send_from_directory  # noqa: E402
+from flask_cors import CORS  # noqa: E402
+from flask_limiter import Limiter  # noqa: E402
+from flask_limiter.util import get_remote_address  # noqa: E402
+from werkzeug.exceptions import HTTPException  # noqa: E402
+
+# Imported eagerly: if a core module is broken, the server fails at start-up
+# instead of answering every request with a 500.
+from ai.colorimetry.face_color import landmarker_status  # noqa: E402
+from ai.recommendation.match import find_shade, load_foundation_db  # noqa: E402
+from ai.recommendation.season import load_season_reference  # noqa: E402
+from backend.analysis_service import decode_image, run_analysis, run_batch_item  # noqa: E402
+from backend.foundation_tryon import FoundationTryOn  # noqa: E402
+
+logging.basicConfig(
+    level=os.environ.get("LOG_LEVEL", "INFO").upper(),
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
+logger = logging.getLogger("shadesense")
+
 app = Flask(__name__)
-CORS(app, origins=[
-    "http://localhost:5001",
-    "http://localhost:5500",
-    "http://localhost:5173",
-    "*"
-])
+app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_MB * 1024 * 1024   # larger uploads → 413
+CORS(app, resources={r"/api/*": {"origins": CORS_ORIGINS}})
+limiter = Limiter(get_remote_address, app=app, storage_uri=RATE_LIMIT_STORAGE, headers_enabled=True)
 
-print("\n" + "=" * 60)
-print("🚀 ShadeSense AI v2 Starting...")
-print("=" * 60)
-
-# ──────────────────────────────────────────────────────────────
-# LOAD MODULES
-# ──────────────────────────────────────────────────────────────
-
-# Face Color Extraction
-try:
-    from ai.colorimetry.face_color import analyze_face_color
-    print("✅ Face color extraction loaded")
-except Exception as e:
-    print(f"❌ Face color extraction error: {e}")
-
-# Foundation Database
-try:
-    from ai.recommendation.match import load_foundation_db, match_foundations
-    foundations = load_foundation_db() or []
-    print(f"✅ Foundation database loaded: {len(foundations)} shades")
-except Exception as e:
-    print(f"❌ Foundation DB error: {e}")
-    foundations = []
-
-# Season Classification
-try:
-    from ai.recommendation.season import (
-        get_season_recommendations,
-        get_ranked_season_recommendations
-    )
-    print("✅ Season classification loaded")
-except Exception as e:
-    print(f"❌ Season classification error: {e}")
-
-# Groq AI Recommendations
-try:
-    from ai.recommendation.groq_writer import (
-        get_ai_recommendations,
-        get_ai_recommendations_ranked
-    )
-    import ai.recommendation.groq_writer as gw
-    print(f"🗂️ groq_writer.py loaded from: {gw.__file__}")
-    print("✅ Groq AI recommendations loaded")
-except Exception as e:
-    print(f"⚠️ Groq AI recommendations error: {e}")
-    get_ai_recommendations = None
-    get_ai_recommendations_ranked = None
-
-# Try-On Module
-try:
-    from foundation_tryon import FoundationTryOn
-    tryon = FoundationTryOn()
-    print("✅ Try-On module loaded")
-except Exception as e:
-    print(f"⚠️ Try-On module error: {e}")
-    tryon = None
-
-# Legacy CNN (for reference only)
-model_path = os.path.join(ROOT_DIR, 'ai/models/balanced_skin_analyzer.h5')
-if os.path.exists(model_path):
-    try:
-        import tensorflow as tf
-        model = tf.keras.models.load_model(model_path)
-        print("✅ CNN model loaded (for reference only)")
-    except Exception as e:
-        print(f"⚠️ CNN model not loaded: {e}")
-
-print("=" * 60 + "\n")
+def check_face_detector() -> dict:
+    """Load the face detector now, at start-up, so a missing MediaPipe is reported
+    immediately instead of silently degrading results on the first request."""
+    status = landmarker_status()
+    if status["mediapipe_ready"]:
+        logger.info("Face detector: MediaPipe Face Landmarker ready")
+    else:
+        logger.warning("Face detector DEGRADED: %s", status["degraded_reason"])
+    return status
 
 
-# ──────────────────────────────────────────────────────────────
-# ROUTES
-# ──────────────────────────────────────────────────────────────
-
-@app.route('/')
-def index():
-    return jsonify({
-        'message': 'ShadeSense AI v2',
-        'version': '2.0.0',
-        'method': 'colorimetry',
-        'endpoints': {
-            'POST /api/analyze': 'Main analysis endpoint',
-            'POST /api/tryon': 'Try-On foundation preview',
-            'GET /api/health': 'Health check'
-        }
-    })
+check_face_detector()
+FOUNDATIONS = load_foundation_db()
+SEASON_COUNT = len(load_season_reference().get("seasons", {}))
+TRYON = FoundationTryOn()
 
 
-@app.route('/api/health', methods=['GET'])
-def health():
-    return jsonify({
-        'status': 'healthy',
-        'version': '2.0.0',
-        'method': 'colorimetry',
-        'foundations_loaded': len(foundations)
-    })
+def _error(message: str, status: int):
+    return jsonify({"success": False, "error": message}), status
 
 
-@app.route('/api/tryon', methods=['POST'])
-def try_foundation():
-    """Apply foundation try-on to uploaded image."""
-    if tryon is None:
-        return jsonify({'error': 'Try-On module not available'}), 503
-
-    if 'image' not in request.files:
-        return jsonify({'error': 'No image provided'}), 400
-
-    shade_name = request.form.get('shade', '')
-    intensity = float(request.form.get('intensity', 0.7))
-
-    if not shade_name:
-        return jsonify({'error': 'No shade selected'}), 400
-
-    file = request.files['image']
-    temp_path = f"temp_tryon_{uuid.uuid4().hex}.jpg"
-    file.save(temp_path)
-
-    try:
-        result_base64 = tryon.apply_foundation(temp_path, shade_name, intensity)
-        return jsonify({
-            'success': True,
-            'image': result_base64,
-            'shade': shade_name
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-    finally:
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
-
-
-@app.route('/api/analyze', methods=['POST'])
-def analyze():
-    """
-    Main analysis endpoint - uses colorimetry pipeline + Groq AI.
-    """
-    # ── Validate Input ──
-    if 'image' not in request.files:
-        return jsonify({'error': 'No image provided'}), 400
-
-    file = request.files['image']
-    img_array = np.frombuffer(file.read(), np.uint8)
-    img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
-
+def _uploaded_image(field: str = "image"):
+    """Return (image, None) or (None, error_response)."""
+    if field not in request.files:
+        return None, _error("No image provided", 400)
+    img = decode_image(request.files[field].read())
     if img is None:
-        return jsonify({'error': 'Invalid image'}), 400
+        return None, _error("Unsupported or corrupt image (use JPEG, PNG or WebP)", 400)
+    return img, None
 
-    # ── Step 1: Face Color Extraction ──
-    try:
-        face_result = analyze_face_color(img)
-    except ValueError as e:
-        return jsonify({'error': str(e)}), 400
-    except Exception as e:
-        return jsonify({'error': f'Face analysis failed: {str(e)}'}), 500
 
-    # ── Step 2: Skin Observations ──
-    skin_observations = {}
-    try:
-        per_region = face_result.get('per_region_values', {})
-        if per_region:
-            # Handle naming mismatch
-            if 'jaw_chin' in per_region and 'jaw' not in per_region:
-                per_region['jaw'] = per_region['jaw_chin']
+# ── ROUTES ──
 
-            skin_observations = detect_skin_observations(per_region)
+@app.route("/")
+def frontend():
+    return send_from_directory(ROOT_DIR, "ShadeSense.html")
 
-            # FORCE TEST: Add mock observation if none detected
-            if skin_observations.get('has_observations', False):
-                print("🔍 SKIN OBSERVATIONS FOUND:")
-                for key in ['under_eye', 'perioral', 'redness']:
-                    if skin_observations.get(key):
-                        print(f"   - {key}: {skin_observations[key]}")
-            else:
-                print("🔍 No notable skin observations detected")
-            # Debug output
-            if skin_observations.get('has_observations', False):
-                print("🔍 SKIN OBSERVATIONS FOUND:")
-                for key in ['under_eye', 'perioral', 'redness']:
-                    if skin_observations.get(key):
-                        print(f"   - {key}: {skin_observations[key]}")
-            else:
-                print("🔍 No notable skin observations detected")
 
-    except Exception as e:
-        print(f"⚠️ Skin observation error: {e}")
-        import traceback
-        traceback.print_exc()
+@app.route("/api")
+def api_index():
+    return jsonify({
+        "name": "ShadeSense API",
+        "endpoints": {
+            "POST /api/analyze": "Main analysis endpoint",
+            "POST /api/tryon": "Try-on preview (experimental)",
+            "POST /api/analyze-batch": f"Up to {MAX_BATCH_IMAGES} images, no narrative (testing)",
+            "GET /api/health": "Component readiness",
+        },
+    })
 
-    # ── Step 3: Foundation Matching ──
-    matches = []
-    if foundations:
-        skin_lab = (face_result['L'], face_result['a'], face_result['b'])
-        matches = match_foundations(skin_lab, foundations, top_k=5)
 
-    # ── Step 4: Season Classification ──
-    # ── Step 4: Season Classification (use ranked winner) ──
-    try:
-        ranked_seasons = get_ranked_season_recommendations(face_result, top_n=3)
-        
-        if ranked_seasons.get("top_seasons"):
-            ranked_winner = ranked_seasons["top_seasons"][0]
-            ranked_winner_key = ranked_winner["season_key"]
-            
-            season_reference_path = os.path.join(ROOT_DIR, "ai", "data", "season_color_reference.json")
-            with open(season_reference_path, "r") as f:
-                seasons_full_data = json.load(f).get("seasons", {})
-            
-            winner_full = seasons_full_data.get(ranked_winner_key, {})
-            
-            season = {
-                "season_key": ranked_winner_key,
-                "season_label": winner_full.get("label", ranked_winner["season_label"]),
-                "family": winner_full.get("family", "neutral"),
-                "profile": winner_full.get("profile", {}),
-                "jewelry": winner_full.get("jewelry_simple", ["silver", "gold"]),
-                "lipstick_family": winner_full.get("lipstick_family", {"name": "neutral", "hexes": []}),
-                "blush_family": winner_full.get("blush_family", {"name": "neutral", "hexes": []}),
-                "raw_data": winner_full,
-            }
-            print(f"📊 Season: {season['season_label']} ({ranked_winner['score_pct']:.1f}%)")
-        else:
-            raise Exception("No ranked seasons found")
-            
-    except Exception as e:
-        print(f"⚠️ Season classification error: {e}")
-        # Fallback to rule-based
-        season = get_season_recommendations(face_result)
-
-    # ── Step 5: Rank Season Candidates ──
-    try:
-        ranked_seasons = get_ranked_season_recommendations(face_result, top_n=3)
-        print("📊 Ranked season candidates:")
-        for candidate in ranked_seasons.get("top_seasons", []):
-            print(f"   {candidate['score_pct']:.1f}% {candidate['season_label']}")
-        print(f"📊 Season margin: {ranked_seasons.get('margin_pct', 0):.1f}% "
-              f"| close call: {ranked_seasons.get('is_close_call', False)}")
-    except Exception as e:
-        print(f"⚠️ Ranked season analysis error: {e}")
-        ranked_seasons = {
-            "top_seasons": [],
-            "margin": 0,
-            "margin_pct": 0,
-            "is_close_call": False,
-            "winner_key": season.get("season_key")
-        }
-        # ── Step 5.5: Load full season data, override with ranked winner if confident ──
-    seasons_full_data = {}
-    try:
-        season_reference_path = os.path.join(ROOT_DIR, "ai", "data", "season_color_reference.json")
-        with open(season_reference_path, "r") as f:
-            seasons_full_data = json.load(f).get("seasons", {})
-    except Exception as e:
-        print(f"⚠️ Could not load season_color_reference.json: {e}")
-
-    RANKED_OVERRIDE_THRESHOLD = 70.0
-    top_seasons = ranked_seasons.get("top_seasons", [])
-
-    if (
-        top_seasons
-        and top_seasons[0]["score_pct"] > RANKED_OVERRIDE_THRESHOLD
-        and not ranked_seasons.get("is_close_call", True)
-    ):
-        ranked_winner_key = top_seasons[0]["season_key"]
-
-        if ranked_winner_key != season.get("season_key"):
-            print(f"⚠️ Overriding rule-based season "
-                  f"'{season.get('season_key')}' → ranked winner "
-                  f"'{ranked_winner_key}' ({top_seasons[0]['score_pct']:.1f}%)")
-
-            winner_full = seasons_full_data.get(ranked_winner_key, {})
-            if winner_full:
-                season = {
-                    "season_key": ranked_winner_key,
-                    "season_label": winner_full.get("label", ranked_winner_key),
-                    "family": winner_full.get("family", "neutral"),
-                    "profile": winner_full.get("profile", {}),
-                    "jewelry": winner_full.get("jewelry_simple", ["silver", "gold"]),
-                    "lipstick_family": winner_full.get(
-                        "lipstick_family", {"name": "neutral", "hexes": []}
-                    ),
-                    "blush_family": winner_full.get(
-                        "blush_family", {"name": "neutral", "hexes": []}
-                    ),
-                    "raw_data": winner_full,
-                }
-
-    # ── Step 6: Generate AI Recommendations ──
-    ai_used = False
-    recommendations_text = "Analysis complete. See your skin profile and foundation matches below."
-    structured_recommendations = {}
-
-    season_details = {
-        'jewelry': season.get('jewelry', ['gold', 'silver']),
-        'lipstick': season.get('lipstick_family', {}).get('name', 'neutral'),
-        'blush': season.get('blush_family', {}).get('name', 'neutral'),
-        'best_colors': {},
-        'worst_colors': []
+@app.route("/api/health", methods=["GET"])
+@limiter.exempt
+def health():
+    face = landmarker_status()
+    checks = {
+        "foundations_loaded": len(FOUNDATIONS),
+        "seasons_loaded": SEASON_COUNT,
+        "face_landmarker_ready": face["mediapipe_ready"],   # False → Haar fallback only
+        "llm_configured": bool(os.environ.get("GROQ_API_KEY")),  # False → template text
     }
-
-    if get_ai_recommendations_ranked:
-        try:
-            
-
-            ai_result = get_ai_recommendations_ranked(
-                face_result,
-                matches,
-                ranked_seasons,
-                seasons_full_data,
-                skin_observations
-            )
-
-            recommendations_text = ai_result.get("summary", "Analysis complete.")
-            structured_recommendations = ai_result.get("structured", {})
-            structured_recommendations["ranked_seasons"] = ranked_seasons
-
-            if "season" in structured_recommendations:
-                season_details = structured_recommendations["season"]
-
-            ai_used = True
-            print("✅ Ranked AI recommendations generated successfully")
-
-        except Exception as e:
-            print(f"⚠️ AI recommendation error: {e}")
-            import traceback
-            traceback.print_exc()
-
-            recommendations_text = (
-                f"🌟 Based on your skin analysis, you have "
-                f"{face_result.get('depth', 'medium')} skin with "
-                f"{face_result.get('undertone', 'neutral')} undertones.\n\n"
-                f"💄 Your best foundation match is "
-                f"{matches[0]['brand'] + ' - ' + matches[0]['shade'] if matches else 'None found'}.\n\n"
-                f"🎨 Your color season is {season.get('season_label', 'Neutral')}."
-            )
-            ai_used = False
-
-    # ── Step 7: Build Response ──
-    response = {
-        'success': True,
-        'method': 'colorimetry_v2',
-        'ai_used': ai_used,
-        'ai_source': 'groq' if ai_used else 'fallback',
-        'analysis': {
-            'depth': face_result.get('depth', 'medium'),
-            'undertone': face_result.get('undertone', 'neutral'),
-            'clarity': face_result.get('clarity', 'medium'),
-            'lab': {
-                'L': face_result.get('L', 50),
-                'a': face_result.get('a', 0),
-                'b': face_result.get('b', 0)
-            },
-            'ita_degrees': face_result.get('ita_degrees', 0),
-            'ita_bucket': face_result.get('ita_bucket', 'unknown'),
-            'confidence': face_result.get('confidence', 0.5),
-            'per_region_values': face_result.get('per_region_values', {})
-        },
-        'foundations': matches,
-        'season': {
-            'label': season.get('season_label', 'Neutral'),
-            'family': season.get('family', 'neutral'),
-            'jewelry': season_details.get('jewelry', season.get('jewelry', ['gold', 'silver'])),
-            'lipstick': season_details.get('lipstick', season.get('lipstick_family', {}).get('name', 'neutral')),
-            'blush': season_details.get('blush', season.get('blush_family', {}).get('name', 'neutral')),
-            'best_colors': season_details.get('best_colors', {}),
-            'worst_colors': season_details.get('worst_colors', [])
-        },
-        'recommendations': recommendations_text,
-        'ai_recommendations': {
-            'summary': recommendations_text
-        },
-        'structured_recommendations': structured_recommendations
-    }
-
-    return jsonify(response)
+    ready = checks["foundations_loaded"] > 0 and checks["seasons_loaded"] > 0
+    reasons = [] if face["mediapipe_ready"] else [face["degraded_reason"]]
+    status = "unavailable" if not ready else ("degraded" if reasons else "ok")
+    return jsonify({"status": status, "degraded_reasons": reasons, **checks}), (200 if ready else 503)
 
 
-@app.route('/api/analyze-batch', methods=['POST'])
+@app.route("/api/analyze", methods=["POST"])
+@limiter.limit(RATE_LIMIT_ANALYZE)
+def analyze():
+    img, err = _uploaded_image()
+    if err:
+        return err
+    try:
+        return jsonify(run_analysis(img, FOUNDATIONS))
+    except ValueError as e:   # our own user-facing messages (e.g. no face found)
+        return _error(str(e), 400)
+
+
+@app.route("/api/tryon", methods=["POST"])
+@limiter.limit(RATE_LIMIT_ANALYZE)
+def try_foundation():
+    img, err = _uploaded_image()
+    if err:
+        return err
+    try:
+        intensity = float(request.form.get("intensity", 0.7))
+    except ValueError:
+        return _error("intensity must be a number between 0 and 1", 400)
+    if not 0.0 <= intensity <= 1.0:
+        return _error("intensity must be a number between 0 and 1", 400)
+
+    shade = find_shade(FOUNDATIONS, request.form.get("brand", ""), request.form.get("shade", ""))
+    if shade is None:
+        return _error("Unknown brand/shade", 400)
+
+    rgb = [int(shade["hex"].lstrip("#")[i:i + 2], 16) for i in (0, 2, 4)]
+    return jsonify({
+        "success": True,
+        "image": TRYON.apply_foundation(img, rgb, intensity),
+        "brand": shade["brand"],
+        "shade": shade["shade"],
+        "hex": shade["hex"],
+    })
+
+
+@app.route("/api/analyze-batch", methods=["POST"])
+@limiter.limit(RATE_LIMIT_BATCH)
 def analyze_batch():
-    """Analyze multiple images for testing."""
-    if 'images' not in request.files:
-        return jsonify({'error': 'No images provided'}), 400
+    files = request.files.getlist("images")
+    if not files:
+        return _error("No images provided", 400)
+    if len(files) > MAX_BATCH_IMAGES:
+        return _error(f"At most {MAX_BATCH_IMAGES} images per batch", 400)
 
-    files = request.files.getlist('images')
     results = []
-
     for file in files:
-        img_array = np.frombuffer(file.read(), np.uint8)
-        img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
-
+        img = decode_image(file.read())
         if img is None:
-            results.append({'filename': file.filename, 'error': 'Invalid image'})
+            results.append({"filename": file.filename, "error": "Unsupported or corrupt image"})
             continue
-
         try:
-            face_result = analyze_face_color(img)
-            skin_lab = (face_result['L'], face_result['a'], face_result['b'])
-            matches = match_foundations(skin_lab, foundations, top_k=3) if foundations else []
-            season = get_season_recommendations(face_result)
-
-            results.append({
-                'filename': file.filename,
-                'depth': face_result['depth'],
-                'undertone': face_result['undertone'],
-                'season': season.get('season_label', 'Unknown'),
-                'top_match': matches[0] if matches else None
-            })
-        except Exception as e:
-            results.append({
-                'filename': file.filename,
-                'error': str(e)
-            })
-
-    return jsonify({'success': True, 'results': results})
+            results.append({"filename": file.filename, **run_batch_item(img, FOUNDATIONS)})
+        except ValueError as e:
+            results.append({"filename": file.filename, "error": str(e)})
+    return jsonify({"success": True, "results": results})
 
 
-# ──────────────────────────────────────────────────────────────
-# ERROR HANDLING
-# ──────────────────────────────────────────────────────────────
+# ── ERROR HANDLING ──
 
-@app.errorhandler(404)
-def not_found(e):
-    return jsonify({'error': 'Endpoint not found'}), 404
+@app.errorhandler(413)
+def too_large(_e):
+    return _error(f"Image too large (max {MAX_UPLOAD_MB} MB)", 413)
 
 
-@app.errorhandler(500)
-def server_error(e):
-    return jsonify({'error': 'Internal server error'}), 500
+@app.errorhandler(429)
+def rate_limited(e):
+    return _error(f"Too many requests ({e.description}). Please wait a moment.", 429)
 
 
-# ──────────────────────────────────────────────────────────────
-# RUN THE APP
-# ──────────────────────────────────────────────────────────────
+@app.errorhandler(HTTPException)
+def http_error(e):
+    return _error(e.description or e.name, e.code or 500)
 
-if __name__ == '__main__':
-    print("\n" + "=" * 60)
-    print("📍 Endpoints:")
-    print("   POST /api/analyze")
-    print("   POST /api/tryon")
-    print("   GET  /api/health")
-    print("   POST /api/analyze-batch (testing)")
-    print("=" * 60)
-    print("\n🚀 Server starting on http://0.0.0.0:5001\n")
-    app.run(debug=False, host='0.0.0.0', port=5001)
+
+@app.errorhandler(Exception)
+def unexpected_error(_e):
+    # Details go to the server log, never to the client.
+    logger.exception("Unhandled error on %s %s", request.method, request.path)
+    return _error("Internal server error", 500)
+
+
+if __name__ == "__main__":
+    logger.info("ShadeSense API on http://%s:%d (%d foundation shades)", HOST, PORT, len(FOUNDATIONS))
+    # Flask's built-in server is for local development. For deployment use a WSGI
+    # server, e.g. `gunicorn -w 2 -b 0.0.0.0:5001 backend.app:app` (and set
+    # SHADESENSE_RATE_LIMIT_STORAGE to Redis so limits are shared between workers).
+    app.run(host=HOST, port=PORT, debug=False)

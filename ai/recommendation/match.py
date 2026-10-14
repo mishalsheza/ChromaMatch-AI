@@ -1,453 +1,142 @@
 """
-match.py — Foundation shade matching using Delta-E 2000
+match.py — foundation shade matching with CIEDE2000 (ΔE00).
+
+Foundation hex codes are converted with the same sRGB → CIELAB function as the
+skin pixels (ai/colorimetry/color_space.py), so both sides are on one scale.
 """
 
-import math
 import json
-import os
-from typing import List, Dict, Any
+import logging
+import math
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence
+
+from ai.colorimetry.color_space import hex_to_lab
+from ai.colorimetry.face_color import classify_undertone
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_DB_PATH = Path(__file__).resolve().parents[1] / "data" / "foundations.json"
 
 
-# ── CIEDE2000 COLOR DIFFERENCE ──
+# ── CIEDE2000 ──
 
-def delta_e_2000(
-    lab1: tuple,
-    lab2: tuple
-) -> float:
+def delta_e_2000(lab1: Sequence[float], lab2: Sequence[float]) -> float:
+    """CIEDE2000 colour difference (Sharma, Wu & Dalal, 2005), kL = kC = kH = 1.
+
+    Verified against all 34 pairs of Sharma's published test data
+    (tests/fixtures/ciede2000_sharma_testdata.txt).
     """
-    Calculate CIEDE2000 color difference.
-    """
-
     L1, a1, b1 = lab1
     L2, a2, b2 = lab2
 
-    # Constants
-    kL, kC, kH = 1.0, 1.0, 1.0
+    C_bar = (math.hypot(a1, b1) + math.hypot(a2, b2)) / 2.0
+    G = 0.5 * (1 - math.sqrt(C_bar ** 7 / (C_bar ** 7 + 25 ** 7)))
+    a1p, a2p = a1 * (1 + G), a2 * (1 + G)
+    C1p, C2p = math.hypot(a1p, b1), math.hypot(a2p, b2)
 
-    # Step 1: Calculate C1, C2
-    C1 = math.sqrt(a1**2 + b1**2)
-    C2 = math.sqrt(a2**2 + b2**2)
+    def hue(b, ap):
+        return 0.0 if (ap == 0 and b == 0) else math.degrees(math.atan2(b, ap)) % 360
 
-    C_bar = (C1 + C2) / 2.0
+    h1p, h2p = hue(b1, a1p), hue(b2, a2p)
 
-    # Step 2: Calculate G
-    G = 0.5 * (
-        1 - math.sqrt(
-            C_bar**7 / (C_bar**7 + 25**7)
-        )
-    )
-
-    # Step 3: Calculate a1', a2'
-    a1_prime = a1 * (1 + G)
-    a2_prime = a2 * (1 + G)
-
-    # Step 4: Calculate C1', C2', h1', h2'
-    C1_prime = math.sqrt(
-        a1_prime**2 + b1**2
-    )
-
-    C2_prime = math.sqrt(
-        a2_prime**2 + b2**2
-    )
-
-    def calculate_h_prime(
-        a_prime,
-        b_val
-    ):
-        h = math.atan2(
-            b_val,
-            a_prime
-        )
-
-        if h < 0:
-            h += 2 * math.pi
-
-        return h
-
-    h1_prime = calculate_h_prime(
-        a1_prime,
-        b1
-    )
-
-    h2_prime = calculate_h_prime(
-        a2_prime,
-        b2
-    )
-
-    # Step 5: Calculate ΔL', ΔC', ΔH'
-    delta_L_prime = L2 - L1
-    delta_C_prime = C2_prime - C1_prime
-
-    delta_h_prime = (
-        h2_prime - h1_prime
-    )
-
-    if delta_h_prime > math.pi:
-        delta_h_prime -= 2 * math.pi
-
-    elif delta_h_prime < -math.pi:
-        delta_h_prime += 2 * math.pi
-
-    delta_H_prime = (
-        2
-        * math.sqrt(C1_prime * C2_prime)
-        * math.sin(delta_h_prime / 2)
-    )
-
-    # Step 6: Calculate L', C', h' averages
-    L_bar_prime = (
-        L1 + L2
-    ) / 2
-
-    C_bar_prime = (
-        C1_prime + C2_prime
-    ) / 2
-
-    h_bar_prime = (
-        h1_prime + h2_prime
-    )
-
-    if abs(h1_prime - h2_prime) > math.pi:
-        h_bar_prime += 2 * math.pi
-
-    h_bar_prime /= 2
-
-    # Step 7: Calculate T
-    T = (
-        1
-        - 0.17 * math.cos(
-            h_bar_prime - math.radians(30)
-        )
-        + 0.24 * math.cos(
-            2 * h_bar_prime
-        )
-        + 0.20 * math.cos(
-            3 * h_bar_prime
-            + math.radians(6)
-        )
-        - 0.20 * math.cos(
-            4 * h_bar_prime
-            - math.radians(63)
-        )
-    )
-
-    # Step 8: Calculate SL, SC, SH
-    SL = (
-        1
-        + (
-            0.015
-            * (L_bar_prime - 50)**2
-        )
-        / math.sqrt(
-            20 + (L_bar_prime - 50)**2
-        )
-    )
-
-    SC = (
-        1
-        + 0.045 * C_bar_prime
-    )
-
-    SH = (
-        1
-        + 0.015
-        * C_bar_prime
-        * T
-    )
-
-    # Step 9: Calculate RT
-    RT = (
-        -2
-        * math.sqrt(
-            C_bar_prime**7
-            / (C_bar_prime**7 + 25**7)
-        )
-        * math.sin(
-            math.radians(60)
-            * math.exp(
-                -(
-                    (
-                        h_bar_prime
-                        - math.radians(275)
-                    )
-                    / math.radians(25)
-                )**2
-            )
-        )
-    )
-
-    # Step 10: Calculate Delta-E
-    delta_E = math.sqrt(
-        (delta_L_prime / (kL * SL))**2
-        + (delta_C_prime / (kC * SC))**2
-        + (delta_H_prime / (kH * SH))**2
-        + RT
-        * (
-            delta_C_prime
-            / (kC * SC)
-        )
-        * (
-            delta_H_prime
-            / (kH * SH)
-        )
-    )
-
-    return delta_E
-
-
-# ── HEX TO LAB ──
-
-def hex_to_lab(
-    hex_color: str
-) -> tuple:
-    """
-    Convert hex color to LAB.
-    """
-
-    if hex_color.startswith("#"):
-        hex_color = hex_color[1:]
-
-    if len(hex_color) == 3:
-        hex_color = "".join(
-            [c * 2 for c in hex_color]
-        )
-
-    try:
-        r = int(
-            hex_color[0:2],
-            16
-        ) / 255.0
-
-        g = int(
-            hex_color[2:4],
-            16
-        ) / 255.0
-
-        b = int(
-            hex_color[4:6],
-            16
-        ) / 255.0
-
-    except ValueError:
-        return (
-            50.0,
-            0.0,
-            0.0
-        )
-
-    # RGB to LAB
-
-    def f(t):
-        if t > 0.008856:
-            return t ** (1 / 3)
-
-        return (
-            7.787 * t
-            + 16 / 116
-        )
-
-    r = (
-        r ** 2.4
-        if r > 0.04045
-        else r / 12.92
-    )
-
-    g = (
-        g ** 2.4
-        if g > 0.04045
-        else g / 12.92
-    )
-
-    b = (
-        b ** 2.4
-        if b > 0.04045
-        else b / 12.92
-    )
-
-    x = (
-        r * 0.4124564
-        + g * 0.3575761
-        + b * 0.1804375
-    )
-
-    y = (
-        r * 0.2126729
-        + g * 0.7151522
-        + b * 0.0721750
-    )
-
-    z = (
-        r * 0.0193339
-        + g * 0.1191920
-        + b * 0.9503041
-    )
-
-    x_n = 0.95047
-    y_n = 1.0
-    z_n = 1.08883
-
-    L = (
-        116 * f(y / y_n)
-        - 16
-    )
-
-    a = 500 * (
-        f(x / x_n)
-        - f(y / y_n)
-    )
-
-    b_lab = 200 * (
-        f(y / y_n)
-        - f(z / z_n)
-    )
-
-    return (
-        L,
-        a,
-        b_lab
-    )
-
-
-# ── LOAD FOUNDATION DATABASE ──
-
-def load_foundation_db(
-    data_path: str = None
-) -> List[Dict[str, Any]]:
-    """
-    Load foundation database with LAB values.
-    """
-
-    # If no path is provided,
-    # try multiple locations.
-    if data_path is None:
-
-        possible_paths = [
-            "ai/data/foundations.json",
-            "../ai/data/foundations.json",
-
-            os.path.join(
-                os.path.dirname(
-                    os.path.dirname(
-                        os.path.dirname(__file__)
-                    )
-                ),
-                "ai/data/foundations.json"
-            ),
-
-            os.path.join(
-                os.getcwd(),
-                "ai/data/foundations.json"
-            ),
-
-            "/Users/shezamishal19/Desktop/"
-            "ShadeSense/ai/data/foundations.json"
-        ]
-
+    dLp = L2 - L1
+    dCp = C2p - C1p
+    if C1p * C2p == 0:
+        dhp = 0.0
     else:
-        possible_paths = [
-            data_path
-        ]
+        dhp = h2p - h1p
+        if dhp > 180:
+            dhp -= 360
+        elif dhp < -180:
+            dhp += 360
+    dHp = 2 * math.sqrt(C1p * C2p) * math.sin(math.radians(dhp) / 2)
 
-    for path in possible_paths:
+    Lp_bar = (L1 + L2) / 2
+    Cp_bar = (C1p + C2p) / 2
+    if C1p * C2p == 0:
+        hp_bar = h1p + h2p
+    elif abs(h1p - h2p) <= 180:
+        hp_bar = (h1p + h2p) / 2
+    elif h1p + h2p < 360:
+        hp_bar = (h1p + h2p + 360) / 2
+    else:
+        hp_bar = (h1p + h2p - 360) / 2
 
-        if os.path.exists(path):
+    T = (1
+         - 0.17 * math.cos(math.radians(hp_bar - 30))
+         + 0.24 * math.cos(math.radians(2 * hp_bar))
+         + 0.32 * math.cos(math.radians(3 * hp_bar + 6))
+         - 0.20 * math.cos(math.radians(4 * hp_bar - 63)))
 
-            print(
-                f"📂 Loading foundations from: {path}"
-            )
+    SL = 1 + 0.015 * (Lp_bar - 50) ** 2 / math.sqrt(20 + (Lp_bar - 50) ** 2)
+    SC = 1 + 0.045 * Cp_bar
+    SH = 1 + 0.015 * Cp_bar * T
 
-            with open(path, "r") as f:
-                data = json.load(f)
+    d_theta = 30 * math.exp(-(((hp_bar - 275) / 25) ** 2))
+    RC = 2 * math.sqrt(Cp_bar ** 7 / (Cp_bar ** 7 + 25 ** 7))
+    RT = -RC * math.sin(math.radians(2 * d_theta))
 
-            # Add LAB values for each foundation
-            for item in data:
-
-                if "hex" in item and item["hex"]:
-
-                    try:
-                        item["lab"] = hex_to_lab(
-                            item["hex"]
-                        )
-
-                    except Exception:
-                        item["lab"] = (
-                            50.0,
-                            0.0,
-                            0.0
-                        )
-
-            return data
-
-    print(
-        f"❌ Foundation database not found at: "
-        f"{data_path}"
+    return math.sqrt(
+        (dLp / SL) ** 2
+        + (dCp / SC) ** 2
+        + (dHp / SH) ** 2
+        + RT * (dCp / SC) * (dHp / SH)
     )
 
-    return []
 
+# ── FOUNDATION DATABASE ──
 
-# ── UNDERTONE FROM LAB ──
+def load_foundation_db(data_path: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Load foundations.json and attach a precomputed LAB value to each shade.
 
-def get_undertone_from_lab(
-    lab: tuple
-) -> str:
+    Shades with a missing or malformed hex code are skipped (not given a fake colour).
     """
-    Classify undertone from LAB values.
-    """
+    path = Path(data_path) if data_path else DEFAULT_DB_PATH
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
 
-    L, a, b = lab
+    shades, skipped = [], 0
+    for item in data:
+        try:
+            item["lab"] = hex_to_lab(item["hex"])
+        except (KeyError, TypeError, ValueError):
+            skipped += 1
+            continue
+        shades.append(item)
 
-    if b > a + 5:
-        return "warm"
-
-    elif a > b + 5:
-        return "cool"
-
-    else:
-        return "neutral"
+    logger.info("Loaded %d foundation shades from %s (%d skipped: bad hex)", len(shades), path, skipped)
+    return shades
 
 
-# ── FOUNDATION MATCHING ──
+def find_shade(foundations: List[Dict[str, Any]], brand: str, shade: str) -> Optional[Dict[str, Any]]:
+    """Exact (case-insensitive) brand + shade lookup, or None."""
+    brand_key, shade_key = (brand or "").strip().lower(), (shade or "").strip().lower()
+    for item in foundations:
+        if (item.get("brand") or "").strip().lower() == brand_key and \
+                (item.get("shade") or "").strip().lower() == shade_key:
+            return item
+    return None
+
+
+# ── MATCHING ──
 
 def match_foundations(
-    skin_lab: tuple,
+    skin_lab: Sequence[float],
     foundations: List[Dict[str, Any]],
-    top_k: int = 5
+    top_k: int = 5,
 ) -> List[Dict[str, Any]]:
-    """
-    Find best foundation matches
-    using Delta-E 2000.
-    """
-
-    if not foundations:
-        return []
-
+    """Return the top_k shades with the smallest ΔE00 to the skin colour."""
     matches = []
-
     for foundation in foundations:
-
-        if "lab" not in foundation:
+        lab = foundation.get("lab")
+        if lab is None:
             continue
-
-        try:
-            distance = delta_e_2000(
-                skin_lab,
-                foundation["lab"]
-            )
-
-        except Exception:
-            continue
-
         matches.append({
             **foundation,
-            "distance": distance,
-            "undertone": get_undertone_from_lab(
-                foundation["lab"]
-            )
+            "distance": delta_e_2000(skin_lab, lab),
+            # Same undertone rule as the skin analysis (one definition app-wide)
+            "undertone": classify_undertone(lab[1], lab[2]),
         })
-
-    matches.sort(
-        key=lambda x: x["distance"]
-    )
-
+    matches.sort(key=lambda m: m["distance"])
     return matches[:top_k]
